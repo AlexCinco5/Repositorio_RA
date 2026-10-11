@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portafolio de Realidad Virtual y Aumentada</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--primary);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            font-size: 1.25rem;
+            margin-top: 0;
+        }
+        .card p {
+            font-size: 0.95rem;
+            color: #475569;
+            flex-grow: 1;
+        }
+        .btn {
+            display: inline-block;
+            background-color: var(--primary);
+            color: white;
+            text-decoration: none;
+            text-align: center;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-top: 15px;
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background-color: #1d4ed8;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Proyectos de Realidad Aumentada</h1>
+
+    <div class="grid">
+        <!-- Actividad 1 -->
+        <div class="card">
+            <h2>1. Juego RA con QR</h2>
+            <p>Minijuego con tres modelos 3D activado mediante un marcador QR personalizado.</p>
+            <a href="./actividad1_qr/index.html" class="btn">Abrir Experiencia</a>
+        </div>
+
+        <!-- Actividad 2 -->
+        <div class="card">
+            <h2>2. Filtro Facial</h2>
+            <p>Máscara interactiva que detecta el rostro y reacciona a gestos.</p>
+            <a href="./actividad2_filtro/index.html" class="btn">Abrir Experiencia</a>
+        </div>
+
+        <!-- Actividad 3 -->
+        <div class="card">
+            <h2>3. Día de Muertos</h2>
+            <p>Máscara temática con mapeo facial de precisión (ojos, nariz, boca).</p>
+            <a href="./actividad3_diademuertos/index.html" class="btn">Abrir Experiencia</a>
+        </div>
+
+        <!-- Actividad 4 -->
+        <div class="card">
+            <h2>4. Videojuego sin Marcadores</h2>
+            <p>Videojuego RA con detección de superficies planas y gamificación.</p>
+            <a href="./actividad4_entorno/index.html" class="btn">Abrir Experiencia</a>
+        </div>
+    </div>
+
+</body>
+</html>
