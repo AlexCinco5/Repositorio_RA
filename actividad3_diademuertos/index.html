@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Filtro RA - Día de Muertos</title>
     
-    <!-- Cargamos A-Frame 1.4.2 para asegurar compatibilidad de shaders con la malla de MindAR -->
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
 
     <style>
@@ -19,7 +18,6 @@
     </style>
 
     <script>
-        // Registrar componente de interactividad por gesticulación (pétalos)
         AFRAME.registerComponent('efecto-tematico', {
             init: function() {
                 this.labioSup = document.querySelector('#labio-sup');
@@ -35,13 +33,9 @@
                 this.labioSup.object3D.getWorldPosition(posSup);
                 this.labioInf.object3D.getWorldPosition(posInf);
                 
-                let distancia = posSup.distanceTo(posInf);
-                
-                // Umbral gesticular calibrado para ti
-                if (distancia > 1.5 && !this.activo) {
+                if (posSup.distanceTo(posInf) > 1.5 && !this.activo) {
                     this.activo = true;
                     this.efecto.setAttribute('visible', 'true');
-                    
                     setTimeout(() => {
                         this.efecto.setAttribute('visible', 'false');
                         this.activo = false;
@@ -49,70 +43,30 @@
                 }
             }
         });
-
-        // Evento crítico: Fuerza el refresco de texturas y materiales para evitar el "freeze" del mapeo 3D
-        AFRAME.registerComponent('forzar-mapeo', {
-            init: function () {
-                const el = this.el;
-                el.addEventListener('model-loaded', () => {
-                    const mesh = el.getObject3D('mesh');
-                    if (mesh) {
-                        mesh.traverse((node) => {
-                            if (node.isMesh) {
-                                // Forzar la renderización del material para que se curve con tu rostro 
-                                node.material.transparent = true;
-                                node.material.alphaTest = 0.2; // Evita el borde pixelado o transparente defectuoso
-                                node.material.needsUpdate = true;
-                            }
-                        });
-                    }
-                });
-            }
-        });
     </script>
 </head>
 <body style="margin: 0; overflow: hidden;">
-    
     <div id="instruccion">Abre la boca para liberar cempasúchil</div>
 
-    <a-scene mindar-face="faceOccluderEnabled: true" embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" efecto-tematico>
+    <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" efecto-tematico>
         
         <a-assets>
-            <!-- Asegúrate de tener "mascara_catrina.png" y "petalos.png" en la misma carpeta sin mayúsculas -->
-            <img id="textura-catrina" src="mascara_catrina.png" crossorigin="anonymous">
-            <img id="textura-petalos" src="petalos.png" crossorigin="anonymous">
+            <img id="textura-catrina" src="mascara_catrina.png">
+            <img id="textura-petalos" src="petalos.png">
         </a-assets>
-
-        <!-- Luces añadidas para el volumen natural del modelo y evitar la invisibilidad de shaders -->
-        <a-entity light="type: ambient; intensity: 1.2;"></a-entity>
-        <a-entity light="type: directional; intensity: 0.8; position: 0 1 1"></a-entity>
 
         <a-camera active="false" position="0 0 0"></a-camera>
 
-        <!-- Sensores invisibles para la lógica gestual -->
         <a-entity id="labio-sup" mindar-face-target="anchorIndex: 13"></a-entity>
         <a-entity id="labio-inf" mindar-face-target="anchorIndex: 14"></a-entity>
 
-        <!-- MAPEO NATURAL: Aplicado directamente sobre el modelo de malla nativo, corregido con forzar-mapeo -->
-        <a-entity mindar-face-target="anchorIndex: 1">
-            <a-entity mindar-face-default-face-model="occluderVisible: false" material="src: #textura-catrina; transparent: true; alphaTest: 0.2; roughness: 0.8;" forzar-mapeo></a-entity>
-        </a-entity>
-
-        <!-- EFECTO INTERACTIVO: Pétalos que caen al abrir la boca -->
+        <!-- USO DE IMAGEN 2D: Con el tamaño ancho (0.75) y alto (1.0) exacto para cubrir un rostro humano -->
         <a-entity mindar-face-target="anchorIndex: 168">
-            <a-image id="efecto-petalos" src="#textura-petalos" position="0 -0.4 0.35" scale="1.4 1.4 1.4" visible="false" material="transparent: true; alphaTest: 0.1;"></a-image>
+            <a-image src="#textura-catrina" position="0 -0.05 0.05" width="0.75" height="1.0" material="transparent: true; alphaTest: 0.1;"></a-image>
+            
+            <a-image id="efecto-petalos" src="#textura-petalos" position="0 -0.5 0.3" scale="1.2 1.2 1.2" visible="false" material="transparent: true; alphaTest: 0.1;"></a-image>
         </a-entity>
         
     </a-scene>
-
-    <script>
-        // Redimensionamiento forzado automático al arrancar para evitar desfases de la cámara web
-        const sceneEl = document.querySelector('a-scene');
-        sceneEl.addEventListener('arReady', () => {
-            setTimeout(() => {
-                window.dispatchEvent(new Event('resize'));
-            }, 600);
-        });
-    </script>
 </body>
 </html>
