@@ -51,7 +51,7 @@
             border-radius: 40px; border: 1px solid rgba(34, 211, 238, 0.4);
         }
         #puntuacion { color: #22d3ee; }
-        #tiempo { color: #fbbf24; }
+        #tiempo { color: #fbbf24; transition: color 0.2s ease; }
 
         #overlay-inicio {
             position: fixed; inset: 0; z-index: 9999;
@@ -137,6 +137,20 @@
             osc.connect(gain).connect(audioCtx.destination);
             osc.start(now); osc.stop(now + 0.3);
         }
+        function playBonus() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            [880, 1175, 1568].forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now + i * 0.08);
+                gain.gain.setValueAtTime(0.25, now + i * 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.25);
+                osc.connect(gain).connect(audioCtx.destination);
+                osc.start(now + i * 0.08); osc.stop(now + i * 0.08 + 0.25);
+            });
+        }
         function playGameOver() {
             if (!audioCtx) return;
             const now = audioCtx.currentTime;
@@ -158,7 +172,8 @@
         AFRAME.registerComponent('cristal', {
             schema: { 
                 puntos: { type: 'int', default: 10 },
-                velocidad: { type: 'number', default: 0.2 } 
+                velocidad: { type: 'number', default: 0.2 },
+                sumaTiempo: { type: 'int', default: 0 }   // ← NUEVO: segundos que suma al tocarlo
             },
             init: function () {
                 this.recogido = false;
@@ -170,7 +185,6 @@
 
                 this.resetearPosicion();
 
-                // Ahora sí, el evento está directamente en el elemento que tiene la clase .clickable y la geometría
                 this.el.addEventListener('mousedown', this.recoger.bind(this));
                 this.el.addEventListener('touchstart', this.recoger.bind(this), { passive: false });
                 this.el.addEventListener('click', this.recoger.bind(this));
@@ -180,7 +194,11 @@
 
                 const dt = Math.min(timeDelta, 50);
                 const pos = this.el.getAttribute('position');
-                pos.y -= (this.data.velocidad * (dt / 1000));
+
+                // Multiplicador progresivo: x1 al inicio, +1 por cada 250 pts, tope x3
+                const multiplicador = 1 + Math.min(EstadoJuego.puntos / 250, 2);
+
+                pos.y -= (this.data.velocidad * multiplicador * (dt / 1000));
 
                 if (pos.y < -0.8) {
                     this.resetearPosicion();
@@ -206,8 +224,20 @@
                 
                 EstadoJuego.puntos += this.data.puntos;
                 document.getElementById('puntuacion').innerText = EstadoJuego.puntos;
-                playDing();
-                vibrar(60);
+
+                // Bonus de tiempo (cristales verdes)
+                if (this.data.sumaTiempo > 0) {
+                    EstadoJuego.tiempoRestante += this.data.sumaTiempo;
+                    const elTiempo = document.getElementById('tiempo');
+                    elTiempo.innerText = EstadoJuego.tiempoRestante;
+                    elTiempo.style.color = '#4ade80';
+                    setTimeout(() => { elTiempo.style.color = '#fbbf24'; }, 400);
+                    playBonus();
+                    vibrar([40, 30, 80]);
+                } else {
+                    playDing();
+                    vibrar(60);
+                }
                 
                 this.el.setAttribute('animation__pop', {
                     property: 'scale', to: '0 0 0', dur: 150, easing: 'easeInBack'
@@ -223,10 +253,11 @@
             crearExplosion: function () {
                 const escena = this.el.sceneEl;
                 const pos = this.el.getAttribute('position');
+                const color = this.data.sumaTiempo > 0 ? '#4ade80' : '#22d3ee';
                 const burst = document.createElement('a-entity');
                 burst.setAttribute('position', pos);
                 burst.setAttribute('geometry', 'primitive: sphere; radius: 0.05');
-                burst.setAttribute('material', 'color: #22d3ee; opacity: 0.8; transparent: true; shader: flat');
+                burst.setAttribute('material', 'color: ' + color + '; opacity: 0.8; transparent: true; shader: flat');
                 burst.setAttribute('animation__expand', {
                     property: 'scale', from: '0.5 0.5 0.5', to: '4 4 4',
                     dur: 500, easing: 'easeOutQuad'
@@ -285,7 +316,10 @@
         <div class="reglas">
             🎯 <strong>Objetivo:</strong> consigue la mayor cantidad de puntos.<br>
             👆 <strong>Cómo jugar:</strong> toca los cristales flotantes.<br>
-            💎 <strong>Puntos:</strong> +10 por cristal.<br>
+            💎 <strong>Blanco:</strong> +10 puntos.<br>
+            🔴 <strong>Rojo:</strong> +15 puntos.<br>
+            🟢 <strong>Verde:</strong> +20 puntos y <strong>+3 segundos</strong>.<br>
+            ⚡ <strong>Dificultad:</strong> la velocidad aumenta con tus puntos.<br>
             ⏱ <strong>Duración:</strong> 30 segundos.<br>
             🏆 <strong>Fin:</strong> cuando el tiempo llegue a 0.
         </div>
@@ -321,7 +355,6 @@
         <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
         <a-light type="directional" color="#ffffff" position="1 1 1" intensity="1"></a-light>
 
-        <!-- Raycaster dirigido al touch directo (mouse emulator) con intervalo 0 para detección inmediata -->
         <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false"
             cursor="fuse: false; rayOrigin: mouse"
             raycaster="objects: .clickable; far: 20; interval: 0"></a-camera>
@@ -329,11 +362,9 @@
         <a-entity mindar-image-target="targetIndex: 0">
             
             <!-- CRISTAL 1 (BLANCO) -->
-            <!-- La entidad principal tiene la geometría (hitbox grande), la clase clickable y el componente cristal -->
             <a-entity class="clickable" cristal="puntos: 10; velocidad: 0.2"
                       geometry="primitive: sphere; radius: 0.4"
                       material="color: #ffffff; opacity: 0.01; transparent: true; depthWrite: false">
-                <!-- Modelo Visual (Hijo) - Ignorado por el touch, solo para verse. Escala compensada. -->
                 <a-entity gltf-model="#modelo1" scale="2 2 2" position="0 -0.1 0"></a-entity>
             </a-entity>
             
@@ -341,15 +372,13 @@
             <a-entity class="clickable" cristal="puntos: 15; velocidad: 0.25"
                       geometry="primitive: sphere; radius: 0.4"
                       material="color: #ffffff; opacity: 0.01; transparent: true; depthWrite: false">
-                <!-- Modelo Visual (Hijo) -->
                 <a-entity gltf-model="#modelo2" scale="0.05 0.05 0.05" position="0 -0.1 0"></a-entity>
             </a-entity>
             
-            <!-- CRISTAL 3 (VERDE) -->
-            <a-entity class="clickable" cristal="puntos: 20; velocidad: 0.3"
+            <!-- CRISTAL 3 (VERDE) - con bonus de tiempo -->
+            <a-entity class="clickable" cristal="puntos: 20; velocidad: 0.3; sumaTiempo: 3"
                       geometry="primitive: sphere; radius: 0.4"
                       material="color: #ffffff; opacity: 0.01; transparent: true; depthWrite: false">
-                <!-- Modelo Visual (Hijo) -->
                 <a-entity gltf-model="#modelo3" scale="0.5 0.5 0.5" position="0 -0.1 0"></a-entity>
             </a-entity>
                 
@@ -359,7 +388,7 @@
         </a-entity>
     </a-scene>
 
-        <script>
+    <script>
         (function () {
             const overlay = document.getElementById('overlay-inicio');
             const btn = document.getElementById('btn-iniciar');
@@ -505,8 +534,6 @@
                     if (!rect.width || !rect.height) return;
 
                     camara.updateMatrixWorld();
-                    // MindAR sobrescribe projectionMatrix cada frame:
-                    // hay que recalcular la inversa o el unproject falla.
                     camara.projectionMatrixInverse.copy(camara.projectionMatrix).invert();
 
                     _ndc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
@@ -524,7 +551,6 @@
                     const impactos = _raycaster.intersectObjects(objetivos, true);
                     if (!impactos.length) return;
 
-                    // Subir por los padres hasta encontrar la entidad con el componente cristal
                     let obj = impactos[0].object;
                     while (obj) {
                         if (obj.el && obj.el.components && obj.el.components.cristal) {
@@ -544,7 +570,6 @@
                     manejarToque(e.clientX, e.clientY);
                 }
 
-                // capture:true → se ejecuta antes que cualquier otro handler
                 window.addEventListener('touchstart', alTocar, { passive: true, capture: true });
                 window.addEventListener('mousedown', alPresionar, { passive: true, capture: true });
             })();
