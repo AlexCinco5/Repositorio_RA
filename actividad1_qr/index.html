@@ -158,15 +158,12 @@
         AFRAME.registerComponent('cristal', {
             schema: { 
                 puntos: { type: 'int', default: 10 },
-                velocidad: { type: 'number', default: 0.15 } 
+                velocidad: { type: 'number', default: 0.3 } 
             },
             init: function () {
-                this.el.classList.add('clickable');
                 this.recogido = false;
                 
-                // La hitbox siempre tendrá escala 1 1 1
-                this.escalaBase = { x: 1, y: 1, z: 1 };
-
+                // Animación de rotación constante
                 this.el.setAttribute('animation__rot', {
                     property: 'rotation', to: '0 360 0',
                     dur: 3000, loop: true, easing: 'linear'
@@ -174,10 +171,10 @@
 
                 this.resetearPosicion();
 
-                // Añadimos múltiples eventos para asegurar la detección en cualquier móvil
+                // Escuchamos mousedown y click para abarcar todos los métodos táctiles
                 this.el.addEventListener('mousedown', this.recoger.bind(this));
-                this.el.addEventListener('touchstart', this.recoger.bind(this), { passive: true });
                 this.el.addEventListener('click', this.recoger.bind(this));
+                this.el.addEventListener('touchstart', this.recoger.bind(this), { passive: false });
             },
             tick: function (time, timeDelta) {
                 if (!EstadoJuego.activo || this.recogido) return;
@@ -185,24 +182,23 @@
                 const pos = this.el.getAttribute('position');
                 pos.y -= (this.data.velocidad * (timeDelta / 1000));
 
-                if (pos.y < -0.6) {
+                if (pos.y < -0.8) {
                     this.resetearPosicion();
                 } else {
                     this.el.setAttribute('position', pos);
                 }
             },
             resetearPosicion: function() {
-                const xAleatorio = (Math.random() - 0.5) * 1.0; 
-                const zAleatorio = 0.1 + (Math.random() * 0.2); // Los acerca un poco a la cámara
-                const yInicio = 0.8 + Math.random() * 0.5;      
+                const xAleatorio = (Math.random() - 0.5) * 1.5; 
+                const zAleatorio = 0.1 + (Math.random() * 0.2); 
+                const yInicio = 1.0 + Math.random() * 0.5;      
 
                 this.el.setAttribute('position', { x: xAleatorio, y: yInicio, z: zAleatorio });
-                this.el.setAttribute('scale', this.escalaBase);
+                this.el.setAttribute('scale', '1 1 1');
                 this.recogido = false;
             },
             recoger: function (evento) {
                 if (!EstadoJuego.activo || this.recogido) return;
-                // Prevenir comportamiento por defecto que a veces bloquea toques
                 if (evento && evento.cancelable) evento.preventDefault();
                 
                 this.recogido = true;
@@ -324,29 +320,32 @@
         <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
         <a-light type="directional" color="#ffffff" position="1 1 1" intensity="1"></a-light>
 
-        <!-- Raycaster optimizado -->
+        <!-- Raycaster optimizado: interval=0 y targeteado a las hitboxes invisibles -->
         <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false"
             cursor="fuse: false; rayOrigin: mouse"
-            raycaster="objects: .clickable; far: 20; interval: 0"></a-camera>
+            raycaster="objects: .hitbox; far: 20; interval: 0"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
             
-            <!-- Cristal 1 (Azul): Hitbox invisible grande y modelo interno -->
-            <a-entity class="clickable" cristal="puntos: 10; velocidad: 0.15" 
-                      geometry="primitive: sphere; radius: 0.3" material="opacity: 0; transparent: true">
-                <a-entity gltf-model="#modelo1" scale="0.25 0.25 0.25" position="0 -0.05 0" animation-mixer></a-entity>
+            <!-- Cristal Azul -->
+            <a-entity cristal="puntos: 10; velocidad: 0.3">
+                <a-entity gltf-model="#modelo1" scale="0.15 0.15 0.15"></a-entity>
+                <!-- Hitbox invisible -->
+                <a-sphere class="hitbox" radius="0.25" material="opacity: 0; transparent: true; depthWrite: false"></a-sphere>
             </a-entity>
             
-            <!-- Cristal 2 (Rojo): Escalado muy hacia arriba para que coincida -->
-            <a-entity class="clickable" cristal="puntos: 15; velocidad: 0.12" 
-                      geometry="primitive: sphere; radius: 0.3" material="opacity: 0; transparent: true">
-                <a-entity gltf-model="#modelo2" scale="0.6 0.6 0.6" position="0 -0.05 0" animation-mixer></a-entity>
+            <!-- Cristal Rojo: Escala drásticamente reducida al 0.005 -->
+            <a-entity cristal="puntos: 15; velocidad: 0.4">
+                <a-entity gltf-model="#modelo2" scale="0.005 0.005 0.005"></a-entity>
+                <!-- Hitbox invisible -->
+                <a-sphere class="hitbox" radius="0.25" material="opacity: 0; transparent: true; depthWrite: false"></a-sphere>
             </a-entity>
             
-            <!-- Cristal 3 (Verde): Escalado muy hacia abajo porque era gigante -->
-            <a-entity class="clickable" cristal="puntos: 20; velocidad: 0.18" 
-                      geometry="primitive: sphere; radius: 0.3" material="opacity: 0; transparent: true">
-                <a-entity gltf-model="#modelo3" scale="0.015 0.015 0.015" position="0 -0.05 0" animation-mixer></a-entity>
+            <!-- Cristal Verde -->
+            <a-entity cristal="puntos: 20; velocidad: 0.5">
+                <a-entity gltf-model="#modelo3" scale="0.3 0.3 0.3"></a-entity>
+                <!-- Hitbox invisible -->
+                <a-sphere class="hitbox" radius="0.25" material="opacity: 0; transparent: true; depthWrite: false"></a-sphere>
             </a-entity>
                 
             <a-ring position="0 0 0" rotation="-90 0 0"
