@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- user-scalable=no ayuda a que la cámara no se distorsione en el celular -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Filtro RA - Máscara de Gas (Boca Reactiva)</title>
     
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -11,10 +12,20 @@
 
     <style>
         #instruccion {
-            position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
-            z-index: 10; background: rgba(0, 0, 0, 0.7); color: #4ade80;
-            padding: 12px 24px; border-radius: 8px; font-family: sans-serif;
-            font-weight: bold; font-size: 16px; text-align: center; pointer-events: none;
+            position: absolute;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            color: #4ade80;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-family: sans-serif;
+            font-weight: bold;
+            font-size: 16px;
+            text-align: center;
+            pointer-events: none;
         }
     </style>
 
@@ -53,7 +64,7 @@
                 
                 let distancia = posSup.distanceTo(posInf);
                 
-                // TU UMBRAL CALIBRADO
+                // TU UMBRAL EXACTO Y TU LÓGICA INTACTA
                 if (distancia > 1.5 && !this.activo) {
                     this.activo = true;
                     
@@ -76,15 +87,17 @@
 </head>
 <body style="margin: 0; overflow: hidden;">
     
-    <div id="instruccion">Abre la boca para liberar el humo</div>
+    <!-- Actualicé ligeramente la instrucción para garantizar que el usuario toque la pantalla y desbloquee el audio en iOS/Android -->
+    <div id="instruccion">Toca la pantalla y abre la boca para el humo</div>
 
-    <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" detector-gesto-boca>
+    <!-- CORRECCIÓN CLAVE 1: renderer con punto y coma (;) y timeout para celulares lentos -->
+    <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true; physicallyCorrectLights: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" detector-gesto-boca>
         
-        <!-- BLINDAJE PARA MÓVILES AÑADIDO AQUÍ -->
         <a-assets timeout="10000">
             <a-asset-item id="mascara-gas" src="mascara_gas.glb"></a-asset-item>
-            <a-asset-item id="cabeza-molde" src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/face-tracking/assets/sparkar/headOccluder.glb"></a-asset-item>
+            <a-asset-item id="cabeza-molde" src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/face-tracking/assets/sparkar/headOccluder.glb" crossorigin="anonymous"></a-asset-item>
             
+            <!-- CORRECCIÓN CLAVE 2: crossorigin en recursos multimedia -->
             <audio id="audio-gas" src="alerta.mp3" preload="auto" crossorigin="anonymous"></audio>
             <img id="textura-humo" src="humo.png" crossorigin="anonymous">
         </a-assets>
@@ -95,6 +108,7 @@
         <a-entity id="labio-inf" mindar-face-target="anchorIndex: 14"></a-entity>
 
         <a-entity mindar-face-target="anchorIndex: 168">
+            
             <a-entity gltf-model="#cabeza-molde" oclusor-invisible scale="0.075 0.075 0.075"></a-entity>
             
             <a-entity 
@@ -109,6 +123,7 @@
             <a-image id="humo-derecho" src="#textura-humo" position="0.7 -0.45 0.7" rotation="0 0 -20" scale="0.4 0.4 0.4" visible="false"></a-image>
 
             <a-entity id="alerta-gas" sound="src: #audio-gas; volume: 1; poolSize: 2"></a-entity>
+            
         </a-entity>
     </a-scene>
 
@@ -118,6 +133,13 @@
                 window.dispatchEvent(new Event('resize'));
             }, 1500);
         });
+
+        // CORRECCIÓN CLAVE 3: Desbloqueo de audio nativo para móviles. 
+        // Al tocar la pantalla por primera vez, el navegador permite reproducir sonidos.
+        window.addEventListener('touchstart', function() {
+            const audioEl = document.getElementById('audio-gas');
+            if(audioEl) { audioEl.load(); }
+        }, { once: true });
     </script>
 </body>
 </html>
