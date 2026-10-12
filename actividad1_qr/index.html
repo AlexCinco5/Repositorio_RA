@@ -158,47 +158,44 @@
         AFRAME.registerComponent('cristal', {
             schema: { 
                 puntos: { type: 'int', default: 10 },
-                velocidad: { type: 'number', default: 0.5 } // Velocidad de caída en unidades por segundo
+                velocidad: { type: 'number', default: 0.15 } 
             },
             init: function () {
                 this.el.classList.add('clickable');
                 this.recogido = false;
                 
-                // Guardamos la escala inicial para restaurarla después de que la toquen
-                this.escalaBase = this.el.getAttribute('scale') || {x: 0.15, y: 0.15, z: 0.15};
+                // Clonamos la escala inicial del HTML para que respete los tamaños ajustados
+                const objScale = this.el.getAttribute('scale');
+                this.escalaBase = { x: objScale.x, y: objScale.y, z: objScale.z };
 
-                // Mantenemos solo la animación de rotación
                 this.el.setAttribute('animation__rot', {
                     property: 'rotation', to: '0 360 0',
                     dur: 3000, loop: true, easing: 'linear'
                 });
 
-                // Posicionar el cristal arriba de forma aleatoria al iniciar
                 this.resetearPosicion();
 
-                this.el.addEventListener('click', this.recoger.bind(this));
+                // Cambiamos 'click' por 'mousedown' para que reaccione más rápido al toque
+                this.el.addEventListener('mousedown', this.recoger.bind(this));
+                this.el.addEventListener('touchstart', this.recoger.bind(this), { passive: true });
             },
-            // La función tick se ejecuta en cada frame para crear el efecto de gravedad
             tick: function (time, timeDelta) {
                 if (!EstadoJuego.activo || this.recogido) return;
 
                 const pos = this.el.getAttribute('position');
-                
-                // Mover hacia abajo
                 pos.y -= (this.data.velocidad * (timeDelta / 1000));
 
-                // Si el objeto cae por debajo del marcador (ej. y < -0.5), lo devolvemos arriba
-                if (pos.y < -0.5) {
+                if (pos.y < -0.7) {
                     this.resetearPosicion();
                 } else {
                     this.el.setAttribute('position', pos);
                 }
             },
             resetearPosicion: function() {
-                // Generar una posición aleatoria en el eje X y Z, y una altura inicial en Y
-                const xAleatorio = (Math.random() - 0.5) * 1.5; // Rango de -0.75 a 0.75
-                const zAleatorio = (Math.random() - 0.5) * 0.5; // Rango de profundidad
-                const yInicio = 1.0 + Math.random() * 0.5;      // Aparece entre 1.0 y 1.5 de altura
+                const xAleatorio = (Math.random() - 0.5) * 1.5; 
+                // Colocamos el cristal ligeramente adelantado en Z (0.1) para que el raycaster no choque con la imagen base
+                const zAleatorio = 0.1; 
+                const yInicio = 0.8 + Math.random() * 0.5;      
 
                 this.el.setAttribute('position', { x: xAleatorio, y: yInicio, z: zAleatorio });
                 this.el.setAttribute('scale', this.escalaBase);
@@ -213,18 +210,16 @@
                 playDing();
                 vibrar(60);
                 
-                // Hacer que desaparezca con una animación
                 this.el.setAttribute('animation__pop', {
                     property: 'scale', to: '0 0 0', dur: 250, easing: 'easeInBack'
                 });
                 this.crearExplosion();
                 
-                // Que vuelva a caer desde arriba después de medio segundo
                 setTimeout(() => {
                     if (EstadoJuego.activo) {
                         this.resetearPosicion();
                     }
-                }, 500);
+                }, 400);
             },
             crearExplosion: function () {
                 const escena = this.el.sceneEl;
@@ -327,20 +322,27 @@
         <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
         <a-light type="directional" color="#ffffff" position="1 1 1" intensity="1"></a-light>
 
+        <!-- El raycaster ahora es más preciso al usar fuse false pero reaccionando al mousedown -->
         <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false"
             cursor="fuse: false; rayOrigin: mouse"
             raycaster="objects: .clickable; far: 10"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
-            <a-entity class="clickable" cristal="puntos: 10; velocidad: 0.6"
-                scale="0.15 0.15 0.15"
+            <!-- Modelo 1 (Cristal Azul): Escala ajustada y velocidad lenta -->
+            <a-entity class="clickable" cristal="puntos: 10; velocidad: 0.15"
+                scale="0.3 0.3 0.3"
                 gltf-model="#modelo1" animation-mixer></a-entity>
-            <a-entity class="clickable" cristal="puntos: 10; velocidad: 0.4"
-                scale="0.15 0.15 0.15"
+            
+            <!-- Modelo 2 (Gema Roja): Escala muy reducida porque el modelo original era gigante -->
+            <a-entity class="clickable" cristal="puntos: 15; velocidad: 0.1"
+                scale="0.02 0.02 0.02"
                 gltf-model="#modelo2" animation-mixer></a-entity>
-            <a-entity class="clickable" cristal="puntos: 10; velocidad: 0.8"
-                scale="0.15 0.15 0.15"
+            
+            <!-- Modelo 3 (Gema Verde): Escala aumentada porque el modelo original era diminuto -->
+            <a-entity class="clickable" cristal="puntos: 20; velocidad: 0.2"
+                scale="1.5 1.5 1.5"
                 gltf-model="#modelo3" animation-mixer></a-entity>
+                
             <a-ring position="0 0 0" rotation="-90 0 0"
                 radius-inner="0.4" radius-outer="0.45"
                 color="#22d3ee" opacity="0.4" transparent="true"></a-ring>
