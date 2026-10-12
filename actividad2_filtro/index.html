@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#000000">
-    <title>Filtro RA - Máscara de Gas (Boca Reactiva)</title>
+    <title>Actividad 2 - Máscara de Gas Reactiva</title>
 
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
@@ -19,80 +18,56 @@
             touch-action: none; overscroll-behavior: none;
             -webkit-user-select: none; user-select: none;
             -webkit-tap-highlight-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
-
-        /* FIX: hacer visible el <video> que crea MindAR */
         video {
-            position: fixed !important;
-            top: 0 !important; left: 0 !important;
+            position: fixed !important; top: 0 !important; left: 0 !important;
             width: 100vw !important; height: 100vh !important;
-            object-fit: cover !important;
-            z-index: 0 !important;
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            background: #000 !important;
+            object-fit: cover !important; z-index: 0 !important;
+            display: block !important; visibility: visible !important;
+            opacity: 1 !important; background: #000 !important;
             pointer-events: none !important;
         }
-        video::-webkit-media-controls,
-        video::-webkit-media-controls-start-playback-button,
-        video::-webkit-media-controls-panel {
-            display: none !important;
-            -webkit-appearance: none !important;
-        }
+        video::-webkit-media-controls { display: none !important; }
 
-        /* Canvas encima pero transparente para dejar ver el video */
         a-scene, .a-canvas, canvas.a-canvas {
-            position: fixed !important;
-            top: 0 !important; left: 0 !important;
+            position: fixed !important; top: 0 !important; left: 0 !important;
             width: 100% !important; height: 100% !important;
             z-index: 1 !important;
             background: transparent !important;
             background-color: transparent !important;
         }
-
-        .a-enter-vr, .a-enter-ar, .a-orientation-modal, .a-loader-title {
-            display: none !important;
-        }
+        .a-enter-vr, .a-enter-ar, .a-orientation-modal, .a-loader-title { display: none !important; }
 
         #instruccion {
             position: fixed; top: 10%; left: 50%; transform: translateX(-50%);
-            z-index: 10; background: rgba(0, 0, 0, 0.7); color: #4ade80;
-            padding: 12px 24px; border-radius: 8px; font-family: sans-serif;
+            z-index: 10; background: rgba(0,0,0,0.7); color: #4ade80;
+            padding: 12px 24px; border-radius: 8px;
             font-weight: bold; font-size: 16px; text-align: center;
             pointer-events: none;
         }
-
         #overlay-inicio {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 9999; display: flex; flex-direction: column;
+            position: fixed; inset: 0; z-index: 9999;
+            display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             background: #000; color: #fff; text-align: center;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             font-size: 16px; padding: 24px; box-sizing: border-box;
         }
         #overlay-inicio.oculto { display: none; }
-        #overlay-inicio p { max-width: 420px; line-height: 1.5; margin: 0 0 8px 0; }
-
+        #overlay-inicio p { max-width: 420px; line-height: 1.5; margin: 0 0 8px; }
         #btn-iniciar {
             margin-top: 24px; padding: 16px 40px; font-size: 18px;
             font-weight: 700; border: 0; border-radius: 40px;
             background: #ff3b30; color: #fff; cursor: pointer;
-            -webkit-appearance: none; appearance: none;
-            touch-action: manipulation;
+            -webkit-appearance: none; touch-action: manipulation;
         }
-
         #mensaje-error {
             margin-top: 20px; color: #ff6b6b; font-size: 14px;
             max-width: 460px; line-height: 1.5; display: none;
             white-space: pre-wrap; word-break: break-word;
         }
         #mensaje-error.visible { display: block; }
-
-        #estado {
-            margin-top: 16px; color: #4ade80; font-size: 14px;
-            min-height: 20px;
-        }
+        #estado { margin-top: 16px; color: #4ade80; font-size: 14px; min-height: 20px; }
     </style>
 
     <script>
@@ -113,6 +88,7 @@
         });
 
         AFRAME.registerComponent('detector-gesto-boca', {
+            schema: { umbral: { type: 'number', default: 0.04 } },
             init: function() {
                 this.labioSup = document.querySelector('#labio-sup');
                 this.labioInf = document.querySelector('#labio-inf');
@@ -120,31 +96,34 @@
                 this.humoDer = document.querySelector('#humo-derecho');
                 this.sonido = document.querySelector('#alerta-gas');
                 this.activo = false;
+                this.ultimoDisparo = 0;
             },
             tick: function() {
                 if (!this.labioSup || !this.labioInf) return;
                 if (!this.labioSup.object3D || !this.labioInf.object3D) return;
 
-                let posSup = new THREE.Vector3();
-                let posInf = new THREE.Vector3();
+                const posSup = new THREE.Vector3();
+                const posInf = new THREE.Vector3();
                 this.labioSup.object3D.getWorldPosition(posSup);
                 this.labioInf.object3D.getWorldPosition(posInf);
+                const distancia = posSup.distanceTo(posInf);
 
-                let distancia = posSup.distanceTo(posInf);
-
-                if (distancia > 1.5 && !this.activo) {
+                const ahora = performance.now();
+                if (distancia > this.data.umbral && !this.activo && (ahora - this.ultimoDisparo) > 2000) {
                     this.activo = true;
+                    this.ultimoDisparo = ahora;
 
-                    this.humoIzq.setAttribute('visible', 'true');
-                    this.humoDer.setAttribute('visible', 'true');
+                    if (this.humoIzq) this.humoIzq.setAttribute('visible', 'true');
+                    if (this.humoDer) this.humoDer.setAttribute('visible', 'true');
 
-                    if (this.sonido && this.sonido.components.sound) {
+                    if (this.sonido && this.sonido.components && this.sonido.components.sound) {
                         try { this.sonido.components.sound.playSound(); } catch (e) {}
                     }
+                    if (navigator.vibrate) { try { navigator.vibrate(80); } catch (e) {} }
 
                     setTimeout(() => {
-                        this.humoIzq.setAttribute('visible', 'false');
-                        this.humoDer.setAttribute('visible', 'false');
+                        if (this.humoIzq) this.humoIzq.setAttribute('visible', 'false');
+                        if (this.humoDer) this.humoDer.setAttribute('visible', 'false');
                         this.activo = false;
                     }, 2000);
                 }
@@ -155,17 +134,15 @@
 <body>
 
     <div id="overlay-inicio">
-        <p>Para usar la máscara de gas necesitamos acceso a tu cámara.</p>
+        <p>Para usar la máscara de gas necesitamos acceso a tu cámara frontal.</p>
         <p><strong>Toca INICIAR</strong> y acepta el permiso cuando el navegador lo pida.</p>
         <button id="btn-iniciar" type="button">INICIAR</button>
         <div id="estado"></div>
         <div id="mensaje-error"></div>
     </div>
 
-    <div id="instruccion">Toca la pantalla y abre la boca</div>
+    <div id="instruccion">👄 Abre la boca para activar la máscara</div>
 
-    <!-- Mantengo tus parámetros de MindAR con autoStart:false para móvil,
-         y solo mejoré el tracking (filterMinCF/filterBeta) para que sea más rápido -->
     <a-scene
         mindar-face="autoStart: false; maxTrack: 1; filterMinCF: 0.001; filterBeta: 0.01; missTolerance: 3; warmupTolerance: 2"
         embedded
@@ -178,48 +155,42 @@
         detector-gesto-boca>
 
         <a-assets timeout="15000">
-            <a-asset-item id="mascara-gas" src="mascara_gas.glb"></a-asset-item>
-            <a-asset-item id="cabeza-molde" src="headOccluder.glb"></a-asset-item>
-            <audio id="audio-gas" src="alerta.mp3" preload="auto" crossorigin="anonymous"></audio>
-            <img id="textura-humo" src="humo.png" crossorigin="anonymous">
+            <a-asset-item id="mascara-gas" src="./mascara_gas.glb"></a-asset-item>
+            <a-asset-item id="cabeza-molde" src="./headOccluder.glb"></a-asset-item>
+            <audio id="audio-gas" src="./alerta.mp3" preload="auto" crossorigin="anonymous"></audio>
+            <img id="textura-humo" src="./humo.png" crossorigin="anonymous">
         </a-assets>
 
         <a-light type="ambient" color="#ffffff" intensity="1.2"></a-light>
         <a-light type="directional" color="#ffffff" position="0 1 1" intensity="0.8"></a-light>
 
-        <!-- RESTAURADO: active="false" es lo que mantiene centrada la máscara -->
         <a-camera active="false" position="0 0 0"></a-camera>
 
         <a-entity id="labio-sup" mindar-face-target="anchorIndex: 13"></a-entity>
         <a-entity id="labio-inf" mindar-face-target="anchorIndex: 14"></a-entity>
 
         <a-entity mindar-face-target="anchorIndex: 168">
-
             <a-entity gltf-model="#cabeza-molde" oclusor-invisible scale="0.075 0.075 0.075"></a-entity>
-
-            <a-entity
-                gltf-model="#mascara-gas"
+            <a-entity gltf-model="#mascara-gas"
                 rotation="0 180 0"
                 position="0 -0.25 0.05"
                 scale="1.6 1.6 1.6"
-                animation-mixer>
-            </a-entity>
+                animation-mixer></a-entity>
 
             <a-image id="humo-izquierdo" src="#textura-humo" position="-0.7 -0.45 0.7" rotation="0 0 20" scale="0.4 0.4 0.4" visible="false"></a-image>
             <a-image id="humo-derecho" src="#textura-humo" position="0.7 -0.45 0.7" rotation="0 0 -20" scale="0.4 0.4 0.4" visible="false"></a-image>
 
             <a-entity id="alerta-gas" sound="src: #audio-gas; volume: 1; poolSize: 2"></a-entity>
-
         </a-entity>
     </a-scene>
 
     <script>
         (function () {
-            var overlay = document.getElementById('overlay-inicio');
-            var btn = document.getElementById('btn-iniciar');
-            var estado = document.getElementById('estado');
-            var errorBox = document.getElementById('mensaje-error');
-            var arrancado = false;
+            const overlay = document.getElementById('overlay-inicio');
+            const btn = document.getElementById('btn-iniciar');
+            const estado = document.getElementById('estado');
+            const errorBox = document.getElementById('mensaje-error');
+            let arrancado = false;
 
             function mostrarError(msg) {
                 errorBox.textContent = msg;
@@ -229,133 +200,93 @@
                 btn.textContent = 'REINTENTAR';
                 arrancado = false;
             }
-
             function mostrarEstado(msg) { estado.textContent = msg; }
-
             function esContextoSeguro() {
-                return window.isSecureContext ||
-                       location.protocol === 'https:' ||
-                       location.hostname === 'localhost' ||
-                       location.hostname === '127.0.0.1';
+                return window.isSecureContext || location.protocol === 'https:' ||
+                       location.hostname === 'localhost' || location.hostname === '127.0.0.1';
             }
-
             function forzarVideoVisible() {
-                var videos = document.querySelectorAll('video');
-                videos.forEach(function (v) {
-                    v.style.position = 'fixed';
-                    v.style.top = '0';
-                    v.style.left = '0';
-                    v.style.width = '100vw';
-                    v.style.height = '100vh';
-                    v.style.objectFit = 'cover';
-                    v.style.zIndex = '0';
-                    v.style.display = 'block';
-                    v.style.visibility = 'visible';
-                    v.style.opacity = '1';
-                    v.style.background = '#000';
-                    v.style.pointerEvents = 'none';
+                document.querySelectorAll('video').forEach(function (v) {
+                    v.style.setProperty('position', 'fixed', 'important');
+                    v.style.setProperty('top', '0', 'important');
+                    v.style.setProperty('left', '0', 'important');
+                    v.style.setProperty('width', '100vw', 'important');
+                    v.style.setProperty('height', '100vh', 'important');
+                    v.style.setProperty('object-fit', 'cover', 'important');
+                    v.style.setProperty('z-index', '0', 'important');
+                    v.style.setProperty('opacity', '1', 'important');
+                    v.style.setProperty('visibility', 'visible', 'important');
+                    v.style.setProperty('display', 'block', 'important');
                     v.setAttribute('playsinline', '');
+                    v.setAttribute('webkit-playsinline', '');
                     v.setAttribute('muted', '');
                     v.muted = true;
+                    const p = v.play();
+                    if (p && p.catch) p.catch(function () {});
                 });
             }
 
             async function pedirPermisoCamara() {
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error(
-                        'Este navegador no soporta acceso a la cámara.\n' +
-                        'Abre el enlace en Chrome (Android) o Safari (iOS) directamente.'
-                    );
+                    throw new Error('Este navegador no soporta acceso a la cámara.');
                 }
-
                 mostrarEstado('Solicitando permiso de cámara...');
-
-                var stream;
+                let stream;
                 try {
                     stream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: 'user' },
-                        audio: false
+                        video: { facingMode: 'user' }, audio: false
                     });
                 } catch (err) {
-                    var nombre = err && err.name ? err.name : 'Error';
-                    var mensajes = {
-                        'NotAllowedError': 'Permiso de cámara DENEGADO. Ve a la configuración del sitio y permite la cámara.',
-                        'PermissionDeniedError': 'Permiso de cámara DENEGADO. Ve a la configuración del sitio y permite la cámara.',
-                        'NotFoundError': 'No se encontró ninguna cámara en este dispositivo.',
-                        'DevicesNotFoundError': 'No se encontró ninguna cámara en este dispositivo.',
-                        'NotReadableError': 'La cámara está siendo usada por otra aplicación. Ciérrala e inténtalo de nuevo.',
-                        'TrackStartError': 'La cámara está siendo usada por otra aplicación. Ciérrala e inténtalo de nuevo.',
-                        'OverconstrainedError': 'La cámara no cumple los requisitos solicitados.',
-                        'SecurityError': 'Bloqueado por seguridad. Debes abrir la página por HTTPS.'
+                    const n = err && err.name ? err.name : 'Error';
+                    const m = {
+                        'NotAllowedError': 'Permiso DENEGADO.',
+                        'NotFoundError': 'No se encontró cámara.',
+                        'NotReadableError': 'La cámara está ocupada.'
                     };
-                    throw new Error(mensajes[nombre] || (nombre + ': ' + (err.message || 'error desconocido')));
+                    throw new Error(m[n] || (n + ': ' + (err.message || '')));
                 }
-
-                stream.getTracks().forEach(function (t) { t.stop(); });
-                mostrarEstado('Permiso concedido ✓ Iniciando cámara...');
+                stream.getTracks().forEach(t => t.stop());
+                mostrarEstado('Permiso concedido ✓ Iniciando...');
             }
 
             function obtenerSistemaMindAR(scene) {
-                var nombres = ['mindar-face-system', 'mindar-face', 'mindarFaceSystem', 'mindarfacesystem'];
-                for (var i = 0; i < nombres.length; i++) {
-                    var s = scene.systems[nombres[i]];
+                const nombres = ['mindar-face-system', 'mindar-face', 'mindarFaceSystem'];
+                for (const n of nombres) {
+                    const s = scene.systems[n];
                     if (s && typeof s.start === 'function') return s;
                 }
-                var keys = Object.keys(scene.systems);
-                for (var j = 0; j < keys.length; j++) {
-                    if (keys[j].toLowerCase().indexOf('mindar') !== -1) {
-                        var sys = scene.systems[keys[j]];
-                        if (sys && typeof sys.start === 'function') return sys;
+                for (const k of Object.keys(scene.systems)) {
+                    if (k.toLowerCase().indexOf('mindar') !== -1) {
+                        const s = scene.systems[k];
+                        if (s && typeof s.start === 'function') return s;
                     }
                 }
                 return null;
             }
 
             function arrancarMindAR() {
-                var scene = document.querySelector('a-scene');
-
-                function intentarArrancar() {
-                    var sistema = obtenerSistemaMindAR(scene);
-
-                    if (!sistema) {
-                        var keys = Object.keys(scene.systems);
-                        mostrarError(
-                            'No se encontró el sistema de MindAR.\n\n' +
-                            'Sistemas cargados: ' + (keys.length ? keys.join(', ') : '(ninguno)') + '\n\n' +
-                            'Probable causa: el script mindar-face-aframe no cargó.'
-                        );
-                        return;
-                    }
-
-                    try {
-                        sistema.start();
-                    } catch (e) {
-                        mostrarError('Error al iniciar MindAR: ' + (e.message || e));
-                        return;
-                    }
-
-                    // Forzar el video visible en cuanto MindAR lo cree
-                    var intentos = 0;
-                    var timer = setInterval(function () {
+                const scene = document.querySelector('a-scene');
+                function intentar() {
+                    const sistema = obtenerSistemaMindAR(scene);
+                    if (!sistema) { mostrarError('No se encontró el sistema de MindAR.'); return; }
+                    try { sistema.start(); }
+                    catch (e) { mostrarError('Error: ' + (e.message || e)); return; }
+                    let intentos = 0;
+                    const timer = setInterval(() => {
                         forzarVideoVisible();
-                        intentos++;
-                        if (document.querySelector('video') || intentos > 20) clearInterval(timer);
+                        if (++intentos > 30) clearInterval(timer);
                     }, 150);
-
-                    // Ocultar el overlay cuando el video ya tenga datos
-                    var checkVideo = setInterval(function () {
-                        var v = document.querySelector('video');
+                    const checkVideo = setInterval(() => {
+                        const v = document.querySelector('video');
                         if (v && v.readyState >= 2) {
                             clearInterval(checkVideo);
                             overlay.classList.add('oculto');
                         }
                     }, 200);
+                    setTimeout(() => overlay.classList.add('oculto'), 8000);
                 }
-
-                if (scene.hasLoaded) setTimeout(intentarArrancar, 200);
-                else scene.addEventListener('loaded', function () {
-                    setTimeout(intentarArrancar, 200);
-                }, { once: true });
+                if (scene.hasLoaded) setTimeout(intentar, 200);
+                else scene.addEventListener('loaded', () => setTimeout(intentar, 200), { once: true });
             }
 
             async function iniciar() {
@@ -364,49 +295,20 @@
                 btn.disabled = true;
                 errorBox.classList.remove('visible');
                 errorBox.textContent = '';
-
-                if (!esContextoSeguro()) {
-                    mostrarError(
-                        'Esta página NO está en HTTPS.\n\n' +
-                        'Los navegadores móviles bloquean la cámara sin HTTPS. ' +
-                        'Súbela a GitHub Pages, Netlify, Vercel o cualquier hosting con SSL.'
-                    );
-                    return;
-                }
-
+                if (!esContextoSeguro()) { mostrarError('Esta página NO está en HTTPS.'); return; }
                 try { await pedirPermisoCamara(); }
                 catch (e) { mostrarError(e.message || String(e)); return; }
-
                 arrancarMindAR();
             }
 
             btn.addEventListener('click', iniciar, { passive: true });
-            btn.addEventListener('touchend', function (e) {
-                e.preventDefault();
-                iniciar();
-            }, { passive: false });
+            btn.addEventListener('touchend', function (e) { e.preventDefault(); iniciar(); }, { passive: false });
 
-            document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
-            document.addEventListener('touchmove', function (e) {
-                if (e.touches.length > 1) e.preventDefault();
-            }, { passive: false });
-
-            // Mantiene el video a pantalla completa
+            document.addEventListener('gesturestart', e => e.preventDefault());
+            document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
             setInterval(forzarVideoVisible, 2000);
-
-            window.addEventListener('resize', function () {
-                setTimeout(function () { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 300);
-            });
-            window.addEventListener('orientationchange', function () {
-                setTimeout(function () { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 500);
-            });
-            window.addEventListener('load', function () {
-                setTimeout(function () { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 1500);
-            });
-
-            if (!esContextoSeguro()) {
-                mostrarError('⚠ Esta página no está en HTTPS. La cámara NO funcionará en el celular.');
-            }
+            window.addEventListener('resize', () => setTimeout(() => { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 300));
+            window.addEventListener('orientationchange', () => setTimeout(() => { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 500));
         })();
     </script>
 </body>

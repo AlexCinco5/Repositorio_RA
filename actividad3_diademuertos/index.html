@@ -2,86 +2,289 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Actividad 3 - Mapeo Facial Catrina</title>
-    
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#000000">
+    <title>Actividad 3 - Catrina con Mapeo Facial</title>
+
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
 
     <style>
-        #instruccion {
-            position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
-            z-index: 10; background: rgba(0, 0, 0, 0.7); color: #f97316;
-            padding: 12px 24px; border-radius: 8px; font-family: sans-serif;
-            font-weight: bold; font-size: 16px; text-align: center; pointer-events: none;
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background: #000;
+            touch-action: none; overscroll-behavior: none;
+            -webkit-user-select: none; user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
+        video {
+            position: fixed !important; top: 0 !important; left: 0 !important;
+            width: 100vw !important; height: 100vh !important;
+            object-fit: cover !important; z-index: 0 !important;
+            display: block !important; visibility: visible !important;
+            opacity: 1 !important; background: #000 !important;
+            pointer-events: none !important;
+        }
+        video::-webkit-media-controls { display: none !important; }
+
+        a-scene, .a-canvas, canvas.a-canvas {
+            position: fixed !important; top: 0 !important; left: 0 !important;
+            width: 100% !important; height: 100% !important;
+            z-index: 1 !important;
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+        .a-enter-vr, .a-enter-ar, .a-orientation-modal, .a-loader-title { display: none !important; }
+
+        #instruccion {
+            position: fixed; top: 10%; left: 50%; transform: translateX(-50%);
+            z-index: 10; background: rgba(0,0,0,0.7); color: #f97316;
+            padding: 12px 24px; border-radius: 8px;
+            font-weight: bold; font-size: 16px; text-align: center;
+            pointer-events: none;
+        }
+        #overlay-inicio {
+            position: fixed; inset: 0; z-index: 9999;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: #000; color: #fff; text-align: center;
+            font-size: 16px; padding: 24px; box-sizing: border-box;
+        }
+        #overlay-inicio.oculto { display: none; }
+        #overlay-inicio p { max-width: 420px; line-height: 1.5; margin: 0 0 8px; }
+        #btn-iniciar {
+            margin-top: 24px; padding: 16px 40px; font-size: 18px;
+            font-weight: 700; border: 0; border-radius: 40px;
+            background: #f97316; color: #fff; cursor: pointer;
+            -webkit-appearance: none; touch-action: manipulation;
+        }
+        #mensaje-error {
+            margin-top: 20px; color: #ff6b6b; font-size: 14px;
+            max-width: 460px; line-height: 1.5; display: none;
+            white-space: pre-wrap; word-break: break-word;
+        }
+        #mensaje-error.visible { display: block; }
+        #estado { margin-top: 16px; color: #f97316; font-size: 14px; min-height: 20px; }
     </style>
 
     <script>
-        // Tu mismo script calibrado a 1.5
         AFRAME.registerComponent('detector-gesto-boca', {
+            schema: { umbral: { type: 'number', default: 0.04 } },
             init: function() {
                 this.labioSup = document.querySelector('#labio-sup');
                 this.labioInf = document.querySelector('#labio-inf');
                 this.petalos = document.querySelector('#efecto-petalos');
                 this.activo = false;
+                this.ultimoDisparo = 0;
             },
             tick: function() {
                 if (!this.labioSup || !this.labioInf) return;
-                
-                let posSup = new THREE.Vector3();
-                let posInf = new THREE.Vector3();
+                if (!this.labioSup.object3D || !this.labioInf.object3D) return;
+
+                const posSup = new THREE.Vector3();
+                const posInf = new THREE.Vector3();
                 this.labioSup.object3D.getWorldPosition(posSup);
                 this.labioInf.object3D.getWorldPosition(posInf);
-                
-                let distancia = posSup.distanceTo(posInf);
-                
-                if (distancia > 1.5 && !this.activo) {
+                const distancia = posSup.distanceTo(posInf);
+                const ahora = performance.now();
+
+                if (distancia > this.data.umbral && !this.activo && (ahora - this.ultimoDisparo) > 2500) {
                     this.activo = true;
-                    this.petalos.setAttribute('visible', 'true');
-                    
+                    this.ultimoDisparo = ahora;
+                    if (this.petalos) this.petalos.setAttribute('visible', 'true');
+                    if (navigator.vibrate) { try { navigator.vibrate(60); } catch (e) {} }
                     setTimeout(() => {
-                        this.petalos.setAttribute('visible', 'false');
+                        if (this.petalos) this.petalos.setAttribute('visible', 'false');
                         this.activo = false;
-                    }, 2000);
+                    }, 2500);
                 }
             }
         });
     </script>
 </head>
-<body style="margin: 0; overflow: hidden;">
-    
-    <div id="instruccion">Abre la boca para liberar cempasúchil</div>
+<body>
 
-    <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" detector-gesto-boca>
-        
-        <a-assets timeout="10000">
-            <img id="textura-catrina" src="mascara_catrina.png" crossorigin="anonymous">
-            <img id="textura-petalos" src="petalos.png" crossorigin="anonymous">
+    <div id="overlay-inicio">
+        <p>💀 Vamos a mapear tu rostro con la Catrina.</p>
+        <p><strong>Toca INICIAR</strong> y acepta el permiso de cámara frontal.</p>
+        <button id="btn-iniciar" type="button">INICIAR</button>
+        <div id="estado"></div>
+        <div id="mensaje-error"></div>
+    </div>
+
+    <div id="instruccion">💀 Abre la boca para liberar cempasúchil</div>
+
+    <a-scene
+        mindar-face="autoStart: false; maxTrack: 1; filterMinCF: 0.001; filterBeta: 0.01; missTolerance: 3; warmupTolerance: 2"
+        embedded
+        background="transparent: true"
+        color-space="sRGB"
+        renderer="colorManagement: true; physicallyCorrectLights: false; antialias: false; precision: mediump; alpha: true"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false"
+        loading-screen="enabled: false"
+        detector-gesto-boca>
+
+        <a-assets timeout="15000">
+            <img id="textura-catrina" src="./mascara_catrina.png" crossorigin="anonymous">
+            <img id="textura-petalos" src="./petalos.png" crossorigin="anonymous">
         </a-assets>
+
+        <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
 
         <a-camera active="false" position="0 0 0"></a-camera>
 
         <a-entity id="labio-sup" mindar-face-target="anchorIndex: 13"></a-entity>
         <a-entity id="labio-inf" mindar-face-target="anchorIndex: 14"></a-entity>
 
-        <!-- Malla facial adaptada a la rúbrica -->
-        <a-entity mindar-face-target="anchorIndex: 1">
-            <a-entity mindar-face-default-face-model material="src: #textura-catrina; transparent: true; alphaTest: 0.5; shader: flat;"></a-entity>
+        <a-entity mindar-face-target="anchorIndex: 168">
+            <a-entity
+                mindar-face-default-face-model
+                material="src: #textura-catrina; transparent: true; alphaTest: 0.4; shader: flat; side: double">
+            </a-entity>
         </a-entity>
 
         <a-entity mindar-face-target="anchorIndex: 168">
-            <a-image id="efecto-petalos" src="#textura-petalos" position="0 -0.5 0.3" scale="1.5 1.5 1.5" visible="false"></a-image>
+            <a-image
+                id="efecto-petalos"
+                src="#textura-petalos"
+                position="0 -0.5 0.3"
+                scale="1.5 1.5 1.5"
+                visible="false"
+                animation__pop="property: scale; from: 0.1 0.1 0.1; to: 1.5 1.5 1.5; dur: 400; easing: easeOutBack; startEvents: show"
+                animation__rot="property: rotation; to: 0 0 360; dur: 3000; loop: true; easing: linear">
+            </a-image>
         </a-entity>
-        
     </a-scene>
 
     <script>
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                window.dispatchEvent(new Event('resize'));
-            }, 1500);
-        });
+        (function () {
+            const overlay = document.getElementById('overlay-inicio');
+            const btn = document.getElementById('btn-iniciar');
+            const estado = document.getElementById('estado');
+            const errorBox = document.getElementById('mensaje-error');
+            let arrancado = false;
+
+            function mostrarError(msg) {
+                errorBox.textContent = msg;
+                errorBox.classList.add('visible');
+                estado.textContent = '';
+                btn.disabled = false;
+                btn.textContent = 'REINTENTAR';
+                arrancado = false;
+            }
+            function mostrarEstado(msg) { estado.textContent = msg; }
+            function esContextoSeguro() {
+                return window.isSecureContext || location.protocol === 'https:' ||
+                       location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            }
+            function forzarVideoVisible() {
+                document.querySelectorAll('video').forEach(function (v) {
+                    v.style.setProperty('position', 'fixed', 'important');
+                    v.style.setProperty('top', '0', 'important');
+                    v.style.setProperty('left', '0', 'important');
+                    v.style.setProperty('width', '100vw', 'important');
+                    v.style.setProperty('height', '100vh', 'important');
+                    v.style.setProperty('object-fit', 'cover', 'important');
+                    v.style.setProperty('z-index', '0', 'important');
+                    v.style.setProperty('opacity', '1', 'important');
+                    v.style.setProperty('visibility', 'visible', 'important');
+                    v.style.setProperty('display', 'block', 'important');
+                    v.setAttribute('playsinline', '');
+                    v.setAttribute('webkit-playsinline', '');
+                    v.setAttribute('muted', '');
+                    v.muted = true;
+                    const p = v.play();
+                    if (p && p.catch) p.catch(function () {});
+                });
+            }
+
+            async function pedirPermisoCamara() {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Este navegador no soporta acceso a la cámara.');
+                }
+                mostrarEstado('Solicitando permiso de cámara...');
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'user' }, audio: false
+                    });
+                } catch (err) {
+                    const n = err && err.name ? err.name : 'Error';
+                    const m = {
+                        'NotAllowedError': 'Permiso DENEGADO.',
+                        'NotFoundError': 'No se encontró cámara.',
+                        'NotReadableError': 'La cámara está ocupada.'
+                    };
+                    throw new Error(m[n] || (n + ': ' + (err.message || '')));
+                }
+                stream.getTracks().forEach(t => t.stop());
+                mostrarEstado('Permiso concedido ✓ Iniciando...');
+            }
+
+            function obtenerSistemaMindAR(scene) {
+                const nombres = ['mindar-face-system', 'mindar-face'];
+                for (const n of nombres) {
+                    const s = scene.systems[n];
+                    if (s && typeof s.start === 'function') return s;
+                }
+                for (const k of Object.keys(scene.systems)) {
+                    if (k.toLowerCase().indexOf('mindar') !== -1) {
+                        const s = scene.systems[k];
+                        if (s && typeof s.start === 'function') return s;
+                    }
+                }
+                return null;
+            }
+
+            function arrancarMindAR() {
+                const scene = document.querySelector('a-scene');
+                function intentar() {
+                    const sistema = obtenerSistemaMindAR(scene);
+                    if (!sistema) { mostrarError('No se encontró el sistema de MindAR.'); return; }
+                    try { sistema.start(); }
+                    catch (e) { mostrarError('Error: ' + (e.message || e)); return; }
+                    let intentos = 0;
+                    const timer = setInterval(() => {
+                        forzarVideoVisible();
+                        if (++intentos > 30) clearInterval(timer);
+                    }, 150);
+                    const checkVideo = setInterval(() => {
+                        const v = document.querySelector('video');
+                        if (v && v.readyState >= 2) {
+                            clearInterval(checkVideo);
+                            overlay.classList.add('oculto');
+                        }
+                    }, 200);
+                    setTimeout(() => overlay.classList.add('oculto'), 8000);
+                }
+                if (scene.hasLoaded) setTimeout(intentar, 200);
+                else scene.addEventListener('loaded', () => setTimeout(intentar, 200), { once: true });
+            }
+
+            async function iniciar() {
+                if (arrancado) return;
+                arrancado = true;
+                btn.disabled = true;
+                errorBox.classList.remove('visible');
+                errorBox.textContent = '';
+                if (!esContextoSeguro()) { mostrarError('Esta página NO está en HTTPS.'); return; }
+                try { await pedirPermisoCamara(); }
+                catch (e) { mostrarError(e.message || String(e)); return; }
+                arrancarMindAR();
+            }
+
+            btn.addEventListener('click', iniciar, { passive: true });
+            btn.addEventListener('touchend', function (e) { e.preventDefault(); iniciar(); }, { passive: false });
+
+            document.addEventListener('gesturestart', e => e.preventDefault());
+            document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+            setInterval(forzarVideoVisible, 2000);
+            window.addEventListener('resize', () => setTimeout(() => { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 300));
+            window.addEventListener('orientationchange', () => setTimeout(() => { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 500));
+        })();
     </script>
 </body>
 </html>

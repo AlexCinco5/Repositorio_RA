@@ -2,44 +2,446 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Actividad 1 - Juego AR con Marcador</title>
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0f172a">
+    <title>Actividad 1 - Atrapa los Cristales AR</title>
+
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
+
     <style>
-        #ui { position: absolute; top: 10px; left: 10px; z-index: 10; color: white; font-family: sans-serif; font-size: 24px; font-weight: bold; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; }
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background: #000;
+            touch-action: none; overscroll-behavior: none;
+            -webkit-user-select: none; user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        video {
+            position: fixed !important; top: 0 !important; left: 0 !important;
+            width: 100vw !important; height: 100vh !important;
+            object-fit: cover !important; z-index: 0 !important;
+            display: block !important; opacity: 1 !important;
+            background: #000 !important; pointer-events: none !important;
+        }
+        video::-webkit-media-controls { display: none !important; }
+
+        a-scene, .a-canvas, canvas.a-canvas {
+            position: fixed !important; top: 0 !important; left: 0 !important;
+            width: 100% !important; height: 100% !important;
+            z-index: 1 !important;
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+        .a-enter-vr, .a-enter-ar, .a-orientation-modal, .a-loader-title { display: none !important; }
+
+        #hud {
+            position: fixed; top: 0; left: 0; width: 100%; z-index: 100;
+            display: flex; justify-content: space-between;
+            padding: 12px 16px; box-sizing: border-box;
+            color: #fff; font-weight: 700; font-size: 16px;
+            text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+        #hud .pill {
+            background: rgba(15, 23, 42, 0.85); padding: 8px 14px;
+            border-radius: 40px; border: 1px solid rgba(34, 211, 238, 0.4);
+        }
+        #puntuacion { color: #22d3ee; }
+        #tiempo { color: #fbbf24; }
+
+        #overlay-inicio {
+            position: fixed; inset: 0; z-index: 9999;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: #fff; text-align: center;
+            padding: 24px; box-sizing: border-box;
+        }
+        #overlay-inicio.oculto { display: none; }
+        #overlay-inicio h1 { font-size: 26px; margin: 0 0 12px; color: #22d3ee; letter-spacing: 1px; }
+        #overlay-inicio p { max-width: 420px; line-height: 1.5; margin: 0 0 8px; font-size: 15px; }
+        #overlay-inicio .reglas {
+            text-align: left; background: rgba(255,255,255,0.05);
+            padding: 16px 20px; border-radius: 12px; margin: 16px 0;
+            max-width: 420px; font-size: 14px; line-height: 1.7;
+        }
+        #btn-iniciar {
+            margin-top: 20px; padding: 16px 44px; font-size: 18px;
+            font-weight: 700; border: 0; border-radius: 40px;
+            background: #22d3ee; color: #0f172a;
+            cursor: pointer; -webkit-appearance: none;
+            touch-action: manipulation; letter-spacing: 1px;
+        }
+        #btn-iniciar:active { transform: scale(0.97); }
+
+        #estado { margin-top: 16px; color: #22d3ee; font-size: 14px; min-height: 20px; }
+        #mensaje-error {
+            margin-top: 20px; color: #ff6b6b; font-size: 14px;
+            max-width: 460px; line-height: 1.5; display: none;
+            white-space: pre-wrap; word-break: break-word;
+        }
+        #mensaje-error.visible { display: block; }
+
+        #gameover {
+            position: fixed; inset: 0; z-index: 9000; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(15, 23, 42, 0.97); color: #fff; text-align: center;
+            padding: 24px;
+        }
+        #gameover.visible { display: flex; }
+        #gameover h2 { font-size: 30px; margin: 0 0 8px; color: #fbbf24; letter-spacing: 2px; }
+        #gameover .final { font-size: 72px; color: #22d3ee; font-weight: 800; margin: 16px 0; }
+        #gameover .record { color: #94a3b8; font-size: 14px; }
+        #btn-reiniciar {
+            margin-top: 24px; padding: 14px 40px; font-size: 16px;
+            font-weight: 700; border: 0; border-radius: 40px;
+            background: #22d3ee; color: #0f172a; cursor: pointer;
+        }
+
+        #instruccion {
+            position: fixed; bottom: 30px; left: 50%;
+            transform: translateX(-50%); z-index: 100;
+            background: rgba(15, 23, 42, 0.85); color: #22d3ee;
+            padding: 10px 22px; border-radius: 40px;
+            font-size: 14px; font-weight: 600;
+            border: 1px solid rgba(34, 211, 238, 0.4);
+            pointer-events: none;
+        }
     </style>
+
     <script>
-        let puntos = 0;
-        AFRAME.registerComponent('interactivo', {
+        const EstadoJuego = {
+            puntos: 0, tiempoRestante: 30, activo: false, intervalo: null,
+            record: parseInt(localStorage.getItem('record_act1') || '0', 10)
+        };
+
+        let audioCtx = null;
+        function initAudio() {
+            if (audioCtx) return;
+            try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+        }
+        function playDing() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(880, now);
+            osc.frequency.exponentialRampToValueAtTime(1760, now + 0.15);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            osc.connect(gain).connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.3);
+        }
+        function playGameOver() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            [523, 415, 330, 262].forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now + i * 0.15);
+                gain.gain.setValueAtTime(0.25, now + i * 0.15);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.4);
+                osc.connect(gain).connect(audioCtx.destination);
+                osc.start(now + i * 0.15); osc.stop(now + i * 0.15 + 0.4);
+            });
+        }
+        function vibrar(ms) {
+            if (navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) {} }
+        }
+
+        AFRAME.registerComponent('cristal', {
+            schema: { puntos: { type: 'int', default: 10 } },
             init: function () {
-                this.el.addEventListener('click', () => {
-                    puntos += 10;
-                    document.getElementById('puntuacion').innerText = puntos;
-                    this.el.setAttribute('visible', 'false');
-                    setTimeout(() => { this.el.setAttribute('visible', 'true'); }, 2000);
+                this.el.classList.add('clickable');
+                this.recogido = false;
+                const pos = this.el.getAttribute('position');
+
+                this.el.setAttribute('animation__rot', {
+                    property: 'rotation', to: '0 360 0',
+                    dur: 3000, loop: true, easing: 'linear'
                 });
+                this.el.setAttribute('animation__float', {
+                    property: 'position',
+                    to: `${pos.x} ${pos.y + 0.08} ${pos.z}`,
+                    dir: 'alternate', dur: 900, loop: true,
+                    easing: 'easeInOutSine'
+                });
+
+                this.el.addEventListener('click', this.recoger.bind(this));
+            },
+            recoger: function () {
+                if (!EstadoJuego.activo || this.recogido) return;
+                this.recogido = true;
+                EstadoJuego.puntos += this.data.puntos;
+                document.getElementById('puntuacion').innerText = EstadoJuego.puntos;
+                playDing();
+                vibrar(60);
+                this.el.setAttribute('animation__pop', {
+                    property: 'scale', to: '0 0 0', dur: 250, easing: 'easeInBack'
+                });
+                this.crearExplosion();
+                setTimeout(() => {
+                    this.el.setAttribute('animation__pop', {
+                        property: 'scale', to: '0.15 0.15 0.15', dur: 400, easing: 'easeOutBack'
+                    });
+                    this.recogido = false;
+                }, 800);
+            },
+            crearExplosion: function () {
+                const escena = this.el.sceneEl;
+                const pos = this.el.getAttribute('position');
+                const burst = document.createElement('a-entity');
+                burst.setAttribute('position', pos);
+                burst.setAttribute('geometry', 'primitive: sphere; radius: 0.05');
+                burst.setAttribute('material', 'color: #22d3ee; opacity: 0.8; transparent: true; shader: flat');
+                burst.setAttribute('animation__expand', {
+                    property: 'scale', from: '0.5 0.5 0.5', to: '4 4 4',
+                    dur: 500, easing: 'easeOutQuad'
+                });
+                burst.setAttribute('animation__fade', {
+                    property: 'material.opacity', from: 0.8, to: 0,
+                    dur: 500, easing: 'easeOutQuad'
+                });
+                escena.appendChild(burst);
+                setTimeout(() => burst.parentNode && burst.parentNode.removeChild(burst), 600);
             }
         });
+
+        function iniciarJuego() {
+            EstadoJuego.puntos = 0;
+            EstadoJuego.tiempoRestante = 30;
+            EstadoJuego.activo = true;
+            document.getElementById('puntuacion').innerText = '0';
+            document.getElementById('tiempo').innerText = '30';
+            document.getElementById('gameover').classList.remove('visible');
+            if (EstadoJuego.intervalo) clearInterval(EstadoJuego.intervalo);
+            EstadoJuego.intervalo = setInterval(() => {
+                EstadoJuego.tiempoRestante--;
+                document.getElementById('tiempo').innerText = EstadoJuego.tiempoRestante;
+                if (EstadoJuego.tiempoRestante <= 0) terminarJuego();
+            }, 1000);
+        }
+
+        function terminarJuego() {
+            EstadoJuego.activo = false;
+            if (EstadoJuego.intervalo) { clearInterval(EstadoJuego.intervalo); EstadoJuego.intervalo = null; }
+            playGameOver();
+            vibrar([100, 50, 100, 50, 200]);
+            document.querySelector('#gameover .final').innerText = EstadoJuego.puntos;
+            if (EstadoJuego.puntos > EstadoJuego.record) {
+                EstadoJuego.record = EstadoJuego.puntos;
+                localStorage.setItem('record_act1', String(EstadoJuego.record));
+            }
+            document.querySelector('#gameover .record').innerText = 'Récord: ' + EstadoJuego.record + ' puntos';
+            document.getElementById('gameover').classList.add('visible');
+        }
+
+        window.reiniciarJuego = function () { iniciarJuego(); };
     </script>
 </head>
-<body style="margin: 0; overflow: hidden;">
-    <div id="ui">Puntos: <span id="puntuacion">0</span></div>
+<body>
 
-    <a-scene mindar-image="imageTargetSrc: marcador.mind;" color-space="sRGB" renderer="colorManagement: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-        <a-assets>
-            <a-asset-item id="modelo1" src="modelo1.glb"></a-asset-item>
-            <a-asset-item id="modelo2" src="modelo2.glb"></a-asset-item>
-            <a-asset-item id="modelo3" src="modelo3.glb"></a-asset-item>
+    <div id="hud">
+        <div class="pill">⭐ Puntos: <span id="puntuacion">0</span></div>
+        <div class="pill">⏱ Tiempo: <span id="tiempo">30</span>s</div>
+    </div>
+
+    <div id="overlay-inicio">
+        <h1>💎 ATRAPA LOS CRISTALES</h1>
+        <p>Apunta la cámara al marcador y recolecta los cristales antes de que se acabe el tiempo.</p>
+        <div class="reglas">
+            🎯 <strong>Objetivo:</strong> consigue la mayor cantidad de puntos.<br>
+            👆 <strong>Cómo jugar:</strong> toca los cristales flotantes.<br>
+            💎 <strong>Puntos:</strong> +10 por cristal.<br>
+            ⏱ <strong>Duración:</strong> 30 segundos.<br>
+            🏆 <strong>Fin:</strong> cuando el tiempo llegue a 0.
+        </div>
+        <button id="btn-iniciar" type="button">INICIAR JUEGO</button>
+        <div id="estado"></div>
+        <div id="mensaje-error"></div>
+    </div>
+
+    <div id="gameover">
+        <h2>¡TIEMPO AGOTADO!</h2>
+        <div class="final">0</div>
+        <div class="record">Récord: 0 puntos</div>
+        <button id="btn-reiniciar" type="button" onclick="reiniciarJuego()">JUGAR DE NUEVO</button>
+    </div>
+
+    <div id="instruccion">👆 Toca los cristales</div>
+
+    <a-scene
+        mindar-image="imageTargetSrc: ./marcador.mind; autoStart: false; uiLoading: no; uiError: no; uiScanning: no"
+        embedded
+        color-space="sRGB"
+        renderer="colorManagement: true; physicallyCorrectLights: false; antialias: false; precision: mediump; alpha: true"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false"
+        loading-screen="enabled: false">
+
+        <a-assets timeout="15000">
+            <a-asset-item id="modelo1" src="./modelo1.glb"></a-asset-item>
+            <a-asset-item id="modelo2" src="./modelo2.glb"></a-asset-item>
+            <a-asset-item id="modelo3" src="./modelo3.glb"></a-asset-item>
         </a-assets>
 
-        <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="objects: .clickable"></a-camera>
+        <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
+        <a-light type="directional" color="#ffffff" position="1 1 1" intensity="1"></a-light>
+
+        <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false"
+            cursor="fuse: false; rayOrigin: mouse"
+            raycaster="objects: .clickable; far: 10"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
-            <a-gltf-model src="#modelo1" class="clickable" interactivo position="-0.5 0 0" scale="0.1 0.1 0.1"></a-gltf-model>
-            <a-gltf-model src="#modelo2" class="clickable" interactivo position="0 0.5 0" scale="0.1 0.1 0.1"></a-gltf-model>
-            <a-gltf-model src="#modelo3" class="clickable" interactivo position="0.5 0 0" scale="0.1 0.1 0.1"></a-gltf-model>
+            <a-entity class="clickable" cristal="puntos: 10"
+                position="-0.4 0.2 0" scale="0.15 0.15 0.15"
+                gltf-model="#modelo1" animation-mixer></a-entity>
+            <a-entity class="clickable" cristal="puntos: 10"
+                position="0 0.45 0" scale="0.15 0.15 0.15"
+                gltf-model="#modelo2" animation-mixer></a-entity>
+            <a-entity class="clickable" cristal="puntos: 10"
+                position="0.4 0.2 0" scale="0.15 0.15 0.15"
+                gltf-model="#modelo3" animation-mixer></a-entity>
+            <a-ring position="0 0 0" rotation="-90 0 0"
+                radius-inner="0.4" radius-outer="0.45"
+                color="#22d3ee" opacity="0.4" transparent="true"></a-ring>
         </a-entity>
     </a-scene>
+
+    <script>
+        (function () {
+            const overlay = document.getElementById('overlay-inicio');
+            const btn = document.getElementById('btn-iniciar');
+            const estado = document.getElementById('estado');
+            const errorBox = document.getElementById('mensaje-error');
+            let arrancado = false;
+
+            function mostrarError(msg) {
+                errorBox.textContent = msg;
+                errorBox.classList.add('visible');
+                estado.textContent = '';
+                btn.disabled = false;
+                btn.textContent = 'REINTENTAR';
+                arrancado = false;
+            }
+            function mostrarEstado(msg) { estado.textContent = msg; }
+            function esContextoSeguro() {
+                return window.isSecureContext || location.protocol === 'https:' ||
+                       location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            }
+            function forzarVideoVisible() {
+                document.querySelectorAll('video').forEach(function (v) {
+                    v.style.setProperty('position', 'fixed', 'important');
+                    v.style.setProperty('top', '0', 'important');
+                    v.style.setProperty('left', '0', 'important');
+                    v.style.setProperty('width', '100vw', 'important');
+                    v.style.setProperty('height', '100vh', 'important');
+                    v.style.setProperty('object-fit', 'cover', 'important');
+                    v.style.setProperty('z-index', '0', 'important');
+                    v.style.setProperty('opacity', '1', 'important');
+                    v.style.setProperty('visibility', 'visible', 'important');
+                    v.style.setProperty('display', 'block', 'important');
+                    v.setAttribute('playsinline', '');
+                    v.setAttribute('webkit-playsinline', '');
+                    v.setAttribute('muted', '');
+                    v.muted = true;
+                    const p = v.play();
+                    if (p && p.catch) p.catch(function () {});
+                });
+            }
+
+            async function pedirPermisoCamara() {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Este navegador no soporta acceso a la cámara.');
+                }
+                mostrarEstado('Solicitando permiso de cámara...');
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment' }, audio: false
+                    });
+                } catch (err) {
+                    const n = err && err.name ? err.name : 'Error';
+                    const m = {
+                        'NotAllowedError': 'Permiso de cámara DENEGADO.',
+                        'NotFoundError': 'No se encontró ninguna cámara.',
+                        'NotReadableError': 'La cámara está ocupada por otra app.'
+                    };
+                    throw new Error(m[n] || (n + ': ' + (err.message || '')));
+                }
+                stream.getTracks().forEach(t => t.stop());
+                mostrarEstado('Permiso concedido ✓ Iniciando...');
+            }
+
+            function obtenerSistemaMindAR(scene) {
+                const nombres = ['mindar-image-system', 'mindar-image', 'mindarImageSystem'];
+                for (const n of nombres) {
+                    const s = scene.systems[n];
+                    if (s && typeof s.start === 'function') return s;
+                }
+                for (const k of Object.keys(scene.systems)) {
+                    if (k.toLowerCase().indexOf('mindar') !== -1) {
+                        const s = scene.systems[k];
+                        if (s && typeof s.start === 'function') return s;
+                    }
+                }
+                return null;
+            }
+
+            function arrancarMindAR() {
+                const scene = document.querySelector('a-scene');
+                function intentar() {
+                    const sistema = obtenerSistemaMindAR(scene);
+                    if (!sistema) { mostrarError('No se encontró el sistema de MindAR.'); return; }
+                    try { sistema.start(); }
+                    catch (e) { mostrarError('Error al iniciar MindAR: ' + (e.message || e)); return; }
+
+                    let intentos = 0;
+                    const timer = setInterval(() => {
+                        forzarVideoVisible();
+                        if (++intentos > 30) clearInterval(timer);
+                    }, 150);
+
+                    setTimeout(() => {
+                        overlay.classList.add('oculto');
+                        iniciarJuego();
+                    }, 1500);
+                }
+                if (scene.hasLoaded) setTimeout(intentar, 200);
+                else scene.addEventListener('loaded', () => setTimeout(intentar, 200), { once: true });
+            }
+
+            async function iniciar() {
+                if (arrancado) return;
+                arrancado = true;
+                btn.disabled = true;
+                errorBox.classList.remove('visible');
+                errorBox.textContent = '';
+                initAudio();
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    try { await audioCtx.resume(); } catch (e) {}
+                }
+                if (!esContextoSeguro()) { mostrarError('Esta página NO está en HTTPS.'); return; }
+                try { await pedirPermisoCamara(); }
+                catch (e) { mostrarError(e.message || String(e)); return; }
+                arrancarMindAR();
+            }
+
+            btn.addEventListener('click', iniciar, { passive: true });
+            btn.addEventListener('touchend', function (e) { e.preventDefault(); iniciar(); }, { passive: false });
+
+            document.addEventListener('gesturestart', e => e.preventDefault());
+            document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+            setInterval(forzarVideoVisible, 2000);
+            window.addEventListener('resize', () => setTimeout(() => { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 300));
+            window.addEventListener('orientationchange', () => setTimeout(() => { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 500));
+        })();
+    </script>
 </body>
 </html>
