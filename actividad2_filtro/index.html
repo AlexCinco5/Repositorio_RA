@@ -2,136 +2,177 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#000000">
     <title>Filtro RA - Máscara de Gas (Boca Reactiva)</title>
-    
-    <!-- Regresamos a la versión que te funciona en PC -->
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
 
     <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            touch-action: none;
+            overscroll-behavior: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        a-scene {
+            position: fixed !important;
+            top: 0; left: 0;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .a-enter-vr, .a-enter-ar, .a-orientation-modal, .a-loader-title {
+            display: none !important;
+        }
+
         #instruccion {
-            position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
-            z-index: 10; background: rgba(0, 0, 0, 0.7); color: #4ade80;
-            padding: 12px 24px; border-radius: 8px; font-family: sans-serif;
-            font-weight: bold; font-size: 16px; text-align: center; pointer-events: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            box-sizing: border-box;
+            background: #000;
+            color: #fff;
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 16px;
+        }
+
+        #instruccion.oculto { display: none; }
+
+        #instruccion button {
+            margin-top: 24px;
+            padding: 16px 36px;
+            font-size: 18px;
+            font-weight: 600;
+            border: 0;
+            border-radius: 40px;
+            background: #ff3b30;
+            color: #fff;
+            -webkit-appearance: none;
+            appearance: none;
+            touch-action: manipulation;
         }
     </style>
-
-    <script>
-        AFRAME.registerComponent('oclusor-invisible', {
-            init: function () {
-                this.el.addEventListener('model-loaded', () => {
-                    const obj = this.el.getObject3D('mesh');
-                    if (obj) {
-                        obj.traverse((node) => {
-                            if (node.isMesh && node.material) {
-                                node.material.colorWrite = false;
-                                // SOLUCIÓN IOS: Evita que el molde se trague a la máscara
-                                node.renderOrder = -1; 
-                            }
-                        });
-                    }
-                });
-            }
-        });
-
-        AFRAME.registerComponent('detector-gesto-boca', {
-            init: function() {
-                this.labioSup = document.querySelector('#labio-sup');
-                this.labioInf = document.querySelector('#labio-inf');
-                this.humoIzq = document.querySelector('#humo-izquierdo');
-                this.humoDer = document.querySelector('#humo-derecho');
-                this.sonido = document.querySelector('#alerta-gas');
-                this.activo = false;
-            },
-            tick: function() {
-                if (!this.labioSup || !this.labioInf) return;
-                
-                let posSup = new THREE.Vector3();
-                let posInf = new THREE.Vector3();
-                this.labioSup.object3D.getWorldPosition(posSup);
-                this.labioInf.object3D.getWorldPosition(posInf);
-                
-                let distancia = posSup.distanceTo(posInf);
-                
-                if (distancia > 1.5 && !this.activo) {
-                    this.activo = true;
-                    
-                    this.humoIzq.setAttribute('visible', 'true');
-                    this.humoDer.setAttribute('visible', 'true');
-                    
-                    if (this.sonido && this.sonido.components.sound) {
-                        this.sonido.components.sound.playSound();
-                    }
-                    
-                    setTimeout(() => {
-                        this.humoIzq.setAttribute('visible', 'false');
-                        this.humoDer.setAttribute('visible', 'false');
-                        this.activo = false;
-                    }, 2000);
-                }
-            }
-        });
-    </script>
 </head>
-<body style="margin: 0; overflow: hidden;">
-    
-    <div id="instruccion">Toca la pantalla y abre la boca</div>
+<body>
 
-    <!-- CORRECCIÓN DE SINTAXIS: Se cambió la coma por un punto y coma en el renderer -->
-    <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true; physicallyCorrectLights: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" detector-gesto-boca>
-        
-        <a-assets timeout="10000">
-            <a-asset-item id="mascara-gas" src="mascara_gas.glb"></a-asset-item>
-            <!-- Asegúrate de tener headOccluder.glb en tu carpeta -->
-            <a-asset-item id="cabeza-molde" src="headOccluder.glb"></a-asset-item>
-            
-            <audio id="audio-gas" src="alerta.mp3" preload="auto" crossorigin="anonymous"></audio>
-            <img id="textura-humo" src="humo.png" crossorigin="anonymous">
+    <div id="instruccion">
+        <p>Permite el acceso a la cámara y toca el botón para comenzar.</p>
+        <button id="btn-iniciar" type="button">INICIAR</button>
+    </div>
+
+    <a-scene
+        mindar-face="autoStart: false; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001; missTolerance: 5; warmupTolerance: 3"
+        renderer="antialias: false; precision: mediump; alpha: true"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false"
+        loading-screen="enabled: false"
+        embedded>
+
+        <!-- ===================================================== -->
+        <!--  TU ESCENA: reemplaza este bloque por tu contenido    -->
+        <!--  original (a-assets, a-camera, entidades, etc.)      -->
+        <!--  Este es solo un ejemplo funcional de prueba.         -->
+        <!-- ===================================================== -->
+
+        <a-assets>
+            <!-- Pon aquí tus modelos, texturas y audios -->
         </a-assets>
 
-        <!-- LUCES AÑADIDAS: Evitan que el modelo GLB sea invisible en celulares -->
-        <a-light type="ambient" color="#ffffff" intensity="1.2"></a-light>
-        <a-light type="directional" color="#ffffff" position="0 1 1" intensity="0.8"></a-light>
-
-        <a-camera active="false" position="0 0 0"></a-camera>
-
-        <a-entity id="labio-sup" mindar-face-target="anchorIndex: 13"></a-entity>
-        <a-entity id="labio-inf" mindar-face-target="anchorIndex: 14"></a-entity>
+        <a-camera
+            position="0 0 0"
+            look-controls="enabled: false"
+            wasd-controls="enabled: false"
+            fov="60">
+        </a-camera>
 
         <a-entity mindar-face-target="anchorIndex: 168">
-            
-            <a-entity gltf-model="#cabeza-molde" oclusor-invisible scale="0.075 0.075 0.075"></a-entity>
-            
-            <a-entity 
-                gltf-model="#mascara-gas" 
-                rotation="0 180 0" 
-                position="0 -0.25 0.05" 
-                scale="1.6 1.6 1.6"
-                animation-mixer>
+            <!-- anchorIndex 168 = punta de la nariz aprox. -->
+            <a-entity
+                id="mascara"
+                position="0 -0.05 0.05"
+                scale="1 1 1">
+                <!-- Placeholder: reemplaza por tu modelo glTF de máscara -->
+                <a-box
+                    color="#333"
+                    width="0.18"
+                    height="0.12"
+                    depth="0.08"
+                    position="0 0 0"></a-box>
+                <a-sphere
+                    color="#555"
+                    radius="0.04"
+                    position="0 -0.05 0.05"></a-sphere>
             </a-entity>
-
-            <a-image id="humo-izquierdo" src="#textura-humo" position="-0.7 -0.45 0.7" rotation="0 0 20" scale="0.4 0.4 0.4" visible="false"></a-image>
-            <a-image id="humo-derecho" src="#textura-humo" position="0.7 -0.45 0.7" rotation="0 0 -20" scale="0.4 0.4 0.4" visible="false"></a-image>
-
-            <a-entity id="alerta-gas" sound="src: #audio-gas; volume: 1; poolSize: 2"></a-entity>
-            
         </a-entity>
+
+        <!-- ===================================================== -->
+        <!--  FIN DE TU ESCENA                                     -->
+        <!-- ===================================================== -->
+
     </a-scene>
 
     <script>
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                window.dispatchEvent(new Event('resize'));
-            }, 1500);
-        });
+        (function () {
+            var instruccion = document.getElementById('instruccion');
+            var btn = document.getElementById('btn-iniciar');
+            var arrancado = false;
 
-        window.addEventListener('touchstart', function() {
-            const audioEl = document.getElementById('audio-gas');
-            if(audioEl) { audioEl.load(); }
-        }, { once: true });
+            function iniciar() {
+                if (arrancado) return;
+                arrancado = true;
+
+                var scene = document.querySelector('a-scene');
+
+                function start() {
+                    try {
+                        scene.systems['mindar-face'].start();
+                    } catch (e) {
+                        console.error('Error al iniciar MindAR:', e);
+                    }
+                    instruccion.classList.add('oculto');
+                }
+
+                if (scene.hasLoaded) start();
+                else scene.addEventListener('loaded', start, { once: true });
+            }
+
+            btn.addEventListener('click', iniciar, { passive: true });
+            btn.addEventListener('touchend', function (e) {
+                e.preventDefault();
+                iniciar();
+            }, { passive: false });
+
+            document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+
+            document.addEventListener('touchmove', function (e) {
+                if (e.touches.length > 1) e.preventDefault();
+            }, { passive: false });
+
+            window.addEventListener('resize', function () {
+                setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 300);
+            });
+        })();
     </script>
 </body>
 </html>
