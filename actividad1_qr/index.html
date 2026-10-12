@@ -156,42 +156,75 @@
         }
 
         AFRAME.registerComponent('cristal', {
-            schema: { puntos: { type: 'int', default: 10 } },
+            schema: { 
+                puntos: { type: 'int', default: 10 },
+                velocidad: { type: 'number', default: 0.5 } // Velocidad de caída en unidades por segundo
+            },
             init: function () {
                 this.el.classList.add('clickable');
                 this.recogido = false;
-                const pos = this.el.getAttribute('position');
+                
+                // Guardamos la escala inicial para restaurarla después de que la toquen
+                this.escalaBase = this.el.getAttribute('scale') || {x: 0.15, y: 0.15, z: 0.15};
 
+                // Mantenemos solo la animación de rotación
                 this.el.setAttribute('animation__rot', {
                     property: 'rotation', to: '0 360 0',
                     dur: 3000, loop: true, easing: 'linear'
                 });
-                this.el.setAttribute('animation__float', {
-                    property: 'position',
-                    to: `${pos.x} ${pos.y + 0.08} ${pos.z}`,
-                    dir: 'alternate', dur: 900, loop: true,
-                    easing: 'easeInOutSine'
-                });
+
+                // Posicionar el cristal arriba de forma aleatoria al iniciar
+                this.resetearPosicion();
 
                 this.el.addEventListener('click', this.recoger.bind(this));
+            },
+            // La función tick se ejecuta en cada frame para crear el efecto de gravedad
+            tick: function (time, timeDelta) {
+                if (!EstadoJuego.activo || this.recogido) return;
+
+                const pos = this.el.getAttribute('position');
+                
+                // Mover hacia abajo
+                pos.y -= (this.data.velocidad * (timeDelta / 1000));
+
+                // Si el objeto cae por debajo del marcador (ej. y < -0.5), lo devolvemos arriba
+                if (pos.y < -0.5) {
+                    this.resetearPosicion();
+                } else {
+                    this.el.setAttribute('position', pos);
+                }
+            },
+            resetearPosicion: function() {
+                // Generar una posición aleatoria en el eje X y Z, y una altura inicial en Y
+                const xAleatorio = (Math.random() - 0.5) * 1.5; // Rango de -0.75 a 0.75
+                const zAleatorio = (Math.random() - 0.5) * 0.5; // Rango de profundidad
+                const yInicio = 1.0 + Math.random() * 0.5;      // Aparece entre 1.0 y 1.5 de altura
+
+                this.el.setAttribute('position', { x: xAleatorio, y: yInicio, z: zAleatorio });
+                this.el.setAttribute('scale', this.escalaBase);
+                this.recogido = false;
             },
             recoger: function () {
                 if (!EstadoJuego.activo || this.recogido) return;
                 this.recogido = true;
+                
                 EstadoJuego.puntos += this.data.puntos;
                 document.getElementById('puntuacion').innerText = EstadoJuego.puntos;
                 playDing();
                 vibrar(60);
+                
+                // Hacer que desaparezca con una animación
                 this.el.setAttribute('animation__pop', {
                     property: 'scale', to: '0 0 0', dur: 250, easing: 'easeInBack'
                 });
                 this.crearExplosion();
+                
+                // Que vuelva a caer desde arriba después de medio segundo
                 setTimeout(() => {
-                    this.el.setAttribute('animation__pop', {
-                        property: 'scale', to: '0.15 0.15 0.15', dur: 400, easing: 'easeOutBack'
-                    });
-                    this.recogido = false;
-                }, 800);
+                    if (EstadoJuego.activo) {
+                        this.resetearPosicion();
+                    }
+                }, 500);
             },
             crearExplosion: function () {
                 const escena = this.el.sceneEl;
@@ -299,14 +332,14 @@
             raycaster="objects: .clickable; far: 10"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
-            <a-entity class="clickable" cristal="puntos: 10"
-                position="-0.4 0.2 0" scale="0.15 0.15 0.15"
+            <a-entity class="clickable" cristal="puntos: 10; velocidad: 0.6"
+                scale="0.15 0.15 0.15"
                 gltf-model="#modelo1" animation-mixer></a-entity>
-            <a-entity class="clickable" cristal="puntos: 10"
-                position="0 0.45 0" scale="0.15 0.15 0.15"
+            <a-entity class="clickable" cristal="puntos: 10; velocidad: 0.4"
+                scale="0.15 0.15 0.15"
                 gltf-model="#modelo2" animation-mixer></a-entity>
-            <a-entity class="clickable" cristal="puntos: 10"
-                position="0.4 0.2 0" scale="0.15 0.15 0.15"
+            <a-entity class="clickable" cristal="puntos: 10; velocidad: 0.8"
+                scale="0.15 0.15 0.15"
                 gltf-model="#modelo3" animation-mixer></a-entity>
             <a-ring position="0 0 0" rotation="-90 0 0"
                 radius-inner="0.4" radius-outer="0.45"
