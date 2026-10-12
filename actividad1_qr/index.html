@@ -359,7 +359,7 @@
         </a-entity>
     </a-scene>
 
-    <script>
+        <script>
         (function () {
             const overlay = document.getElementById('overlay-inicio');
             const btn = document.getElementById('btn-iniciar');
@@ -486,6 +486,68 @@
             setInterval(forzarVideoVisible, 2000);
             window.addEventListener('resize', () => setTimeout(() => { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 300));
             window.addEventListener('orientationchange', () => setTimeout(() => { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 500));
+
+            /* ============================================================
+               FIX TOUCH: raycast manual sobre .clickable en móvil
+               ============================================================ */
+            (function () {
+                const THREE = AFRAME.THREE;
+                const _raycaster = new THREE.Raycaster();
+                const _ndc = new THREE.Vector2();
+
+                function manejarToque(clientX, clientY) {
+                    if (!EstadoJuego.activo) return;
+                    const scene = document.querySelector('a-scene');
+                    if (!scene || !scene.camera || !scene.canvas) return;
+
+                    const camara = scene.camera;
+                    const rect = scene.canvas.getBoundingClientRect();
+                    if (!rect.width || !rect.height) return;
+
+                    camara.updateMatrixWorld();
+                    // MindAR sobrescribe projectionMatrix cada frame:
+                    // hay que recalcular la inversa o el unproject falla.
+                    camara.projectionMatrixInverse.copy(camara.projectionMatrix).invert();
+
+                    _ndc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+                    _ndc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+                    _raycaster.setFromCamera(_ndc, camara);
+
+                    const objetivos = [];
+                    scene.querySelectorAll('.clickable').forEach(function (el) {
+                        if (el.object3D && el.components && el.components.cristal) {
+                            objetivos.push(el.object3D);
+                        }
+                    });
+                    if (!objetivos.length) return;
+
+                    const impactos = _raycaster.intersectObjects(objetivos, true);
+                    if (!impactos.length) return;
+
+                    // Subir por los padres hasta encontrar la entidad con el componente cristal
+                    let obj = impactos[0].object;
+                    while (obj) {
+                        if (obj.el && obj.el.components && obj.el.components.cristal) {
+                            obj.el.components.cristal.recoger();
+                            return;
+                        }
+                        obj = obj.parent;
+                    }
+                }
+
+                function alTocar(e) {
+                    if (!e.touches || !e.touches.length) return;
+                    manejarToque(e.touches[0].clientX, e.touches[0].clientY);
+                }
+                function alPresionar(e) {
+                    if (e.button !== undefined && e.button !== 0) return;
+                    manejarToque(e.clientX, e.clientY);
+                }
+
+                // capture:true → se ejecuta antes que cualquier otro handler
+                window.addEventListener('touchstart', alTocar, { passive: true, capture: true });
+                window.addEventListener('mousedown', alPresionar, { passive: true, capture: true });
+            })();
         })();
     </script>
 </body>
