@@ -3,160 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego RA - Actividad 1</title>
+    <title>Actividad 1 - Efecto Cayendo</title>
     
-    <!-- Librerías de A-Frame y MindAR para rastreo de imágenes -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
 
     <style>
-        /* Interfaz de usuario (HUD) superpuesta */
-        #ui-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 10; pointer-events: none; font-family: sans-serif;
-        }
-        .panel {
-            background: rgba(0,0,0,0.8); color: white; padding: 15px; 
-            border-radius: 10px; pointer-events: auto; text-align: center;
-        }
-        #instrucciones, #game-over {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 80%; max-width: 300px;
-        }
-        #hud {
-            display: none; justify-content: space-between; padding: 15px;
-        }
-        button {
-            background: #2563eb; color: white; border: none; padding: 10px 20px;
-            font-size: 16px; border-radius: 5px; cursor: pointer; margin-top: 10px;
+        #instruccion {
+            position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
+            z-index: 10; background: rgba(0, 0, 0, 0.7); color: #f97316;
+            padding: 12px 24px; border-radius: 8px; font-family: sans-serif;
+            font-weight: bold; font-size: 16px; text-align: center; pointer-events: none;
         }
     </style>
-
-    <script>
-        // Lógica del Juego y Retroalimentación Táctil
-        let puntos = 0;
-        let tiempo = 30;
-        let juegoActivo = false;
-        let intervaloReloj;
-
-        AFRAME.registerComponent('interactable', {
-            schema: { valor: { type: 'number', default: 10 } },
-            init: function () {
-                this.el.addEventListener('click', () => {
-                    if (!juegoActivo) return;
-
-                    // Retroalimentación táctil (vibración si el dispositivo lo soporta)
-                    if (navigator.vibrate) {
-                        navigator.vibrate(100);
-                    }
-
-                    // Retroalimentación visual: ocultar y cambiar posición
-                    this.el.setAttribute('visible', 'false');
-                    
-                    // Sumar puntos
-                    puntos += this.data.valor;
-                    document.getElementById('score').innerText = puntos;
-
-                    // Reaparecer en otra posición tras un breve tiempo
-                    setTimeout(() => {
-                        if(juegoActivo) {
-                            const x = (Math.random() * 1.5) - 0.75;
-                            const y = (Math.random() * 1.5) - 0.75;
-                            this.el.setAttribute('position', `${x} ${y} 0`);
-                            this.el.setAttribute('visible', 'true');
-                        }
-                    }, 800);
-                });
-            }
-        });
-
-        function iniciarJuego() {
-            document.getElementById('instrucciones').style.display = 'none';
-            document.getElementById('hud').style.display = 'flex';
-            puntos = 0;
-            tiempo = 30;
-            juegoActivo = true;
-            document.getElementById('score').innerText = puntos;
-            document.getElementById('time').innerText = tiempo;
-
-            intervaloReloj = setInterval(() => {
-                tiempo--;
-                document.getElementById('time').innerText = tiempo;
-                if (tiempo <= 0) {
-                    terminarJuego();
-                }
-            }, 1000);
-        }
-
-        function terminarJuego() {
-            juegoActivo = false;
-            clearInterval(intervaloReloj);
-            document.getElementById('hud').style.display = 'none';
-            document.getElementById('game-over').style.display = 'block';
-            document.getElementById('puntuacion-final').innerText = puntos;
-        }
-
-        // Detectar cuando la cámara encuentra el QR para permitir jugar
-        document.addEventListener("DOMContentLoaded", function() {
-            const target = document.querySelector('#target-qr');
-            target.addEventListener("targetFound", () => {
-                if(!juegoActivo && tiempo > 0 && document.getElementById('instrucciones').style.display === 'none') {
-                    // Reanudar si se pausó
-                }
-            });
-            target.addEventListener("targetLost", () => {
-                // Pausar juego si se pierde el marcador
-            });
-        });
-    </script>
 </head>
 <body style="margin: 0; overflow: hidden;">
+    
+    <div id="instruccion">Apunta a tu rostro para ver el efecto</div>
 
-    <!-- Capa de Interfaz 2D -->
-    <div id="ui-layer">
-        <div id="instrucciones" class="panel">
-            <h2>Cazatesoros RA</h2>
-            <p><strong>Reglas:</strong> Apunta al marcador QR. Toca los objetos 3D lo más rápido que puedas para ganar puntos.</p>
-            <p><strong>Objetivo:</strong> Consigue la mayor puntuación en 30 segundos.</p>
-            <button onclick="iniciarJuego()">Empezar Juego</button>
-        </div>
-
-        <div id="hud">
-            <div class="panel" style="padding: 10px;">Puntos: <span id="score">0</span></div>
-            <div class="panel" style="padding: 10px;">Tiempo: <span id="time">30</span>s</div>
-        </div>
-
-        <div id="game-over" class="panel" style="display: none;">
-            <h2>¡Tiempo Agotado!</h2>
-            <p>Puntuación Final: <span id="puntuacion-final">0</span></p>
-            <button onclick="location.reload()">Jugar de Nuevo</button>
-        </div>
-    </div>
-
-    <!-- Escena de Realidad Aumentada -->
-    <a-scene mindar-image="imageTargetSrc: marcador.mind;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+    <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
         
-        <a-assets>
-            <!-- Aquí van tus 3 modelos optimizados -->
-            <a-asset-item id="modelo1" src="modelo1.glb"></a-asset-item>
-            <a-asset-item id="modelo2" src="modelo2.glb"></a-asset-item>
-            <a-asset-item id="modelo3" src="modelo3.glb"></a-asset-item>
+        <!-- TIMEOUT AÑADIDO: Fuerza el inicio a los 3 segundos si la red es lenta -->
+        <a-assets timeout="3000">
+            <!-- Asumo que son imágenes PNG. Respeta las minúsculas -->
+            <img id="mod1" src="modelo1.png" crossorigin="anonymous">
+            <img id="mod2" src="modelo2.png" crossorigin="anonymous">
+            <img id="mod3" src="modelo3.png" crossorigin="anonymous">
         </a-assets>
 
-        <!-- Cámara con Raycaster para habilitar la interacción táctil en pantalla -->
-        <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="objects: .clickable"></a-camera>
+        <a-camera active="false" position="0 0 0"></a-camera>
 
-        <!-- Anclaje al Marcador QR -->
-        <a-entity id="target-qr" mindar-image-target="targetIndex: 0">
-            <!-- Modelo 1 -->
-            <a-entity class="clickable" interactable="valor: 10" gltf-model="#modelo1" position="-0.5 0 0" scale="0.2 0.2 0.2"></a-entity>
-            <!-- Modelo 2 -->
-            <a-entity class="clickable" interactable="valor: 20" gltf-model="#modelo2" position="0 0.5 0" scale="0.2 0.2 0.2"></a-entity>
-            <!-- Modelo 3 -->
-            <a-entity class="clickable" interactable="valor: 30" gltf-model="#modelo3" position="0.5 0 0" scale="0.2 0.2 0.2"></a-entity>
+        <!-- Anclamos el punto de inicio en la frente (anchorIndex: 10) -->
+        <a-entity mindar-face-target="anchorIndex: 10">
+            
+            <!-- Modelo 1: Cae por la izquierda -->
+            <a-image src="#mod1" scale="0.3 0.3 0.3" material="transparent: true; alphaTest: 0.1;"
+                     animation="property: position; from: -0.4 1 0.1; to: -0.4 -3 0.1; dur: 2500; loop: true; easing: linear;">
+            </a-image>
+
+            <!-- Modelo 2: Cae por el centro (empieza más alto y cae más lento) -->
+            <a-image src="#mod2" scale="0.3 0.3 0.3" material="transparent: true; alphaTest: 0.1;"
+                     animation="property: position; from: 0 1.5 0.2; to: 0 -3.5 0.2; dur: 3200; loop: true; easing: linear;">
+            </a-image>
+
+            <!-- Modelo 3: Cae por la derecha (cae más rápido) -->
+            <a-image src="#mod3" scale="0.3 0.3 0.3" material="transparent: true; alphaTest: 0.1;"
+                     animation="property: position; from: 0.4 1.2 0.15; to: 0.4 -2.8 0.15; dur: 2000; loop: true; easing: linear;">
+            </a-image>
+            
         </a-entity>
-
+        
     </a-scene>
-
 </body>
 </html>

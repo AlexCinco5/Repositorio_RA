@@ -22,7 +22,7 @@
             init: function() {
                 this.labioSup = document.querySelector('#labio-sup');
                 this.labioInf = document.querySelector('#labio-inf');
-                this.efecto = document.querySelector('#efecto-petalos');
+                this.efecto = document.querySelector('#efecto-particulas');
                 this.activo = false;
             },
             tick: function() {
@@ -46,13 +46,15 @@
     </script>
 </head>
 <body style="margin: 0; overflow: hidden;">
-    <div id="instruccion">Abre la boca para liberar cempasúchil</div>
+    <div id="instruccion">Abre la boca para el efecto</div>
 
     <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" efecto-tematico>
         
         <a-assets>
-            <img id="textura-catrina" src="mascara_catrina.png">
-            <img id="textura-petalos" src="petalos.png">
+            <!-- REGLA DE CELULAR: Agregar crossorigin="anonymous" a todas las imágenes -->
+            <img id="textura-catrina" src="mascara_catrina.png" crossorigin="anonymous">
+            <!-- Si tienes un archivo para el humo, pon su nombre exacto aquí abajo (ej. humo.png o petalos.png) -->
+            <img id="textura-efecto" src="petalos.png" crossorigin="anonymous">
         </a-assets>
 
         <a-camera active="false" position="0 0 0"></a-camera>
@@ -60,11 +62,11 @@
         <a-entity id="labio-sup" mindar-face-target="anchorIndex: 13"></a-entity>
         <a-entity id="labio-inf" mindar-face-target="anchorIndex: 14"></a-entity>
 
-        <!-- USO DE IMAGEN 2D: Con el tamaño ancho (0.75) y alto (1.0) exacto para cubrir un rostro humano -->
+        <!-- Anclaje 2D a la nariz calibrado -->
         <a-entity mindar-face-target="anchorIndex: 168">
             <a-image src="#textura-catrina" position="0 -0.05 0.05" width="0.75" height="1.0" material="transparent: true; alphaTest: 0.1;"></a-image>
             
-            <a-image id="efecto-petalos" src="#textura-petalos" position="0 -0.5 0.3" scale="1.2 1.2 1.2" visible="false" material="transparent: true; alphaTest: 0.1;"></a-image>
+            <a-image id="efecto-particulas" src="#textura-efecto" position="0 -0.5 0.3" scale="1.2 1.2 1.2" visible="false" material="transparent: true; alphaTest: 0.1;"></a-image>
         </a-entity>
         
     </a-scene>
