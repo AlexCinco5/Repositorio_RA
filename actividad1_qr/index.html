@@ -164,7 +164,7 @@
                 this.el.classList.add('clickable');
                 this.recogido = false;
                 
-                // Clonamos la escala inicial del HTML para que respete los tamaños ajustados
+                // Clonamos la escala inicial del HTML para restaurarla
                 const objScale = this.el.getAttribute('scale');
                 this.escalaBase = { x: objScale.x, y: objScale.y, z: objScale.z };
 
@@ -175,9 +175,8 @@
 
                 this.resetearPosicion();
 
-                // Cambiamos 'click' por 'mousedown' para que reaccione más rápido al toque
-                this.el.addEventListener('mousedown', this.recoger.bind(this));
-                this.el.addEventListener('touchstart', this.recoger.bind(this), { passive: true });
+                // IMPORTANTE: Volvemos a escuchar 'click'. A-Frame cursor traduce los toques a clicks automáticamente.
+                this.el.addEventListener('click', this.recoger.bind(this));
             },
             tick: function (time, timeDelta) {
                 if (!EstadoJuego.activo || this.recogido) return;
@@ -192,9 +191,9 @@
                 }
             },
             resetearPosicion: function() {
-                const xAleatorio = (Math.random() - 0.5) * 1.5; 
-                // Colocamos el cristal ligeramente adelantado en Z (0.1) para que el raycaster no choque con la imagen base
-                const zAleatorio = 0.1; 
+                const xAleatorio = (Math.random() - 0.5) * 1.2; 
+                // Evitamos que queden exactamente sobre el plano Z=0 para mejorar la detección del toque
+                const zAleatorio = 0.1 + (Math.random() * 0.2); 
                 const yInicio = 0.8 + Math.random() * 0.5;      
 
                 this.el.setAttribute('position', { x: xAleatorio, y: yInicio, z: zAleatorio });
@@ -322,25 +321,25 @@
         <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
         <a-light type="directional" color="#ffffff" position="1 1 1" intensity="1"></a-light>
 
-        <!-- El raycaster ahora es más preciso al usar fuse false pero reaccionando al mousedown -->
+        <!-- Raycaster optimizado: interval=0 asegura que detecte objetos en rápido movimiento -->
         <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false"
             cursor="fuse: false; rayOrigin: mouse"
-            raycaster="objects: .clickable; far: 10"></a-camera>
+            raycaster="objects: .clickable; far: 20; interval: 0"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
-            <!-- Modelo 1 (Cristal Azul): Escala ajustada y velocidad lenta -->
+            <!-- Modelo 1 (Cristal Azul): Escala ajustada -->
             <a-entity class="clickable" cristal="puntos: 10; velocidad: 0.15"
-                scale="0.3 0.3 0.3"
+                scale="0.25 0.25 0.25"
                 gltf-model="#modelo1" animation-mixer></a-entity>
             
-            <!-- Modelo 2 (Gema Roja): Escala muy reducida porque el modelo original era gigante -->
-            <a-entity class="clickable" cristal="puntos: 15; velocidad: 0.1"
-                scale="0.02 0.02 0.02"
+            <!-- Modelo 2 (Gema Roja): Escala ligeramente más grande para que se vea -->
+            <a-entity class="clickable" cristal="puntos: 15; velocidad: 0.18"
+                scale="0.08 0.08 0.08"
                 gltf-model="#modelo2" animation-mixer></a-entity>
             
-            <!-- Modelo 3 (Gema Verde): Escala aumentada porque el modelo original era diminuto -->
+            <!-- Modelo 3 (Gema Verde): Escala MUY reducida en comparación al gigante de la foto -->
             <a-entity class="clickable" cristal="puntos: 20; velocidad: 0.2"
-                scale="1.5 1.5 1.5"
+                scale="0.08 0.08 0.08"
                 gltf-model="#modelo3" animation-mixer></a-entity>
                 
             <a-ring position="0 0 0" rotation="-90 0 0"
