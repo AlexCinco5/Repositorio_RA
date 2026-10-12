@@ -28,7 +28,6 @@
             height: 100% !important;
         }
 
-        /* Oculta UI de A-Frame que estorba en celular */
         .a-enter-vr, .a-enter-ar, .a-orientation-modal, .a-loader-title {
             display: none !important;
         }
@@ -41,7 +40,6 @@
             pointer-events: none;
         }
 
-        /* Overlay inicial: iOS exige un toque del usuario para encender la cámara */
         #overlay-inicio {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 9999; display: flex; flex-direction: column;
@@ -51,6 +49,7 @@
             font-size: 16px; padding: 24px; box-sizing: border-box;
         }
         #overlay-inicio.oculto { display: none; }
+        #overlay-inicio p { max-width: 420px; line-height: 1.5; margin: 0 0 8px 0; }
 
         #btn-iniciar {
             margin-top: 24px; padding: 16px 40px; font-size: 18px;
@@ -58,6 +57,18 @@
             background: #ff3b30; color: #fff; cursor: pointer;
             -webkit-appearance: none; appearance: none;
             touch-action: manipulation;
+        }
+
+        #mensaje-error {
+            margin-top: 20px; color: #ff6b6b; font-size: 14px;
+            max-width: 420px; line-height: 1.5; display: none;
+            white-space: pre-wrap; word-break: break-word;
+        }
+        #mensaje-error.visible { display: block; }
+
+        #estado {
+            margin-top: 16px; color: #4ade80; font-size: 14px;
+            min-height: 20px;
         }
     </style>
 
@@ -70,7 +81,6 @@
                         obj.traverse((node) => {
                             if (node.isMesh && node.material) {
                                 node.material.colorWrite = false;
-                                // Evita que el molde se trague a la máscara
                                 node.renderOrder = -1;
                             }
                         });
@@ -121,10 +131,12 @@
 </head>
 <body>
 
-    <!-- Pantalla inicial: obligatoria en iOS para arrancar la cámara -->
     <div id="overlay-inicio">
-        <p>Permite el acceso a la cámara y toca el botón para comenzar.</p>
+        <p>Para usar la máscara de gas necesitamos acceso a tu cámara.</p>
+        <p><strong>Toca INICIAR</strong> y acepta el permiso cuando el navegador lo pida.</p>
         <button id="btn-iniciar" type="button">INICIAR</button>
+        <div id="estado"></div>
+        <div id="mensaje-error"></div>
     </div>
 
     <div id="instruccion">Toca la pantalla y abre la boca</div>
@@ -146,7 +158,6 @@
             <img id="textura-humo" src="humo.png" crossorigin="anonymous">
         </a-assets>
 
-        <!-- Luces: evitan que el GLB se vea negro en celulares -->
         <a-light type="ambient" color="#ffffff" intensity="1.2"></a-light>
         <a-light type="directional" color="#ffffff" position="0 1 1" intensity="0.8"></a-light>
 
@@ -179,12 +190,89 @@
         (function () {
             var overlay = document.getElementById('overlay-inicio');
             var btn = document.getElementById('btn-iniciar');
+            var estado = document.getElementById('estado');
+            var errorBox = document.getElementById('mensaje-error');
             var arrancado = false;
 
-            function iniciar() {
-                if (arrancado) return;
-                arrancado = true;
+            function mostrarError(msg) {
+                errorBox.textContent = msg;
+                errorBox.classList.add('visible');
+                estado.textContent = '';
+                btn.disabled = false;
+                btn.textContent = 'REINTENTAR';
+                arrancado = false;
+            }
 
+            function mostrarEstado(msg) {
+                estado.textContent = msg;
+            }
+
+            // Detección previa: HTTPS obligatorio para cámara en móvil
+            function esContextoSeguro() {
+                return window.isSecureContext ||
+                       location.protocol === 'https:' ||
+                       location.hostname === 'localhost' ||
+                       location.hostname === '127.0.0.1';
+            }
+
+            // FORZAR el diálogo de permiso de cámara llamando a getUserMedia
+            // ANTES de arrancar MindAR. Esto es lo que hace aparecer el popup.
+            async function pedirPermisoCamara() {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error(
+                        'Este navegador no soporta acceso a la cámara (getUserMedia).\n' +
+                        'Prueba abriendo el enlace en Chrome (Android) o Safari (iOS) directamente, ' +
+                        'no dentro de WhatsApp, Instagram o Facebook.'
+                    );
+                }
+
+                mostrarEstado('Solicitando permiso de cámara...');
+
+                var stream;
+                try {
+                    // facingMode user = cámara frontal
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'user' },
+                        audio: false
+                    });
+                } catch (err) {
+                    var nombre = err && err.name ? err.name : 'Error';
+                    var mensajes = {
+                        'NotAllowedError':
+                            'Permiso de cámara DENEGADO.\n' +
+                            'Ve a la configuración del sitio en tu navegador, ' +
+                            'permite el acceso a la cámara y recarga la página.',
+                        'PermissionDeniedError':
+                            'Permiso de cámara DENEGADO.\n' +
+                            'Ve a la configuración del sitio en tu navegador, ' +
+                            'permite el acceso a la cámara y recarga la página.',
+                        'NotFoundError':
+                            'No se encontró ninguna cámara en este dispositivo.',
+                        'DevicesNotFoundError':
+                            'No se encontró ninguna cámara en este dispositivo.',
+                        'NotReadableError':
+                            'La cámara está siendo usada por otra aplicación.\n' +
+                            'Cierra otras apps que usen la cámara e inténtalo de nuevo.',
+                        'TrackStartError':
+                            'La cámara está siendo usada por otra aplicación.\n' +
+                            'Cierra otras apps que usen la cámara e inténtalo de nuevo.',
+                        'OverconstrainedError':
+                            'La cámara no cumple los requisitos solicitados.',
+                        'SecurityError':
+                            'Bloqueado por seguridad.\n' +
+                            'Debes abrir la página por HTTPS (no por http:// ni file://).'
+                    };
+                    throw new Error(mensajes[nombre] || (nombre + ': ' + (err.message || 'error desconocido')));
+                }
+
+                // Ya tenemos permiso: cerramos el stream de prueba.
+                // MindAR abrirá el suyo propio a continuación.
+                stream.getTracks().forEach(function (t) { t.stop(); });
+
+                mostrarEstado('Permiso concedido ✓ Iniciando cámara...');
+            }
+
+            function arrancarMindAR() {
                 var scene = document.querySelector('a-scene');
 
                 function start() {
@@ -192,6 +280,8 @@
                         scene.systems['mindar-face'].start();
                     } catch (e) {
                         console.error('Error al iniciar MindAR:', e);
+                        mostrarError('Error al iniciar MindAR: ' + (e.message || e));
+                        return;
                     }
                     overlay.classList.add('oculto');
                 }
@@ -200,22 +290,49 @@
                 else scene.addEventListener('loaded', start, { once: true });
             }
 
-            // click + touchend: en algunos Android el click tarda o no llega
+            async function iniciar() {
+                if (arrancado) return;
+                arrancado = true;
+                btn.disabled = true;
+                errorBox.classList.remove('visible');
+                errorBox.textContent = '';
+
+                // 1) HTTPS obligatorio
+                if (!esContextoSeguro()) {
+                    mostrarError(
+                        'Esta página NO está en HTTPS.\n\n' +
+                        'Los navegadores móviles bloquean la cámara sin HTTPS. ' +
+                        'Súbela a GitHub Pages, Netlify, Vercel o cualquier hosting con SSL ' +
+                        'y vuelve a intentarlo desde esa URL https://...'
+                    );
+                    return;
+                }
+
+                // 2) Forzar diálogo de permiso
+                try {
+                    await pedirPermisoCamara();
+                } catch (e) {
+                    mostrarError(e.message || String(e));
+                    return;
+                }
+
+                // 3) Arrancar MindAR
+                arrancarMindAR();
+            }
+
+            // Listeners en click Y touchend: algunos Android no disparan click rápido
             btn.addEventListener('click', iniciar, { passive: true });
             btn.addEventListener('touchend', function (e) {
                 e.preventDefault();
                 iniciar();
             }, { passive: false });
 
-            // Bloquea zoom por pellizco en iOS Safari
             document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
 
-            // Evita scroll/rebote al arrastrar sobre el video
             document.addEventListener('touchmove', function (e) {
                 if (e.touches.length > 1) e.preventDefault();
             }, { passive: false });
 
-            // Reajusta el canvas al girar el teléfono o al ocultarse la barra de URL
             window.addEventListener('resize', function () {
                 setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 300);
             });
@@ -226,11 +343,15 @@
                 setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 1500);
             });
 
-            // Precarga el audio al primer toque (política de autoplay en móvil)
-            window.addEventListener('touchstart', function () {
-                var audioEl = document.getElementById('audio-gas');
-                if (audioEl) { try { audioEl.load(); } catch (e) {} }
-            }, { once: true, passive: true });
+            // Si no está en contexto seguro, avisamos de inmediato al cargar
+            if (!esContextoSeguro()) {
+                mostrarError(
+                    '⚠ Esta página no está en HTTPS.\n\n' +
+                    'La cámara NO funcionará en el celular sin HTTPS. ' +
+                    'Súbela a un hosting con SSL (GitHub Pages, Netlify, Vercel) ' +
+                    'y ábrela desde esa URL https://...'
+                );
+            }
         })();
     </script>
 </body>
