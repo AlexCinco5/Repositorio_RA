@@ -68,64 +68,258 @@
         }
         #mensaje-error.visible { display: block; }
         #estado { margin-top: 16px; color: #4ade80; font-size: 14px; min-height: 20px; }
+
+        #depurar {
+            position: fixed; left: 8px; bottom: 8px; z-index: 30;
+            display: none; white-space: pre;
+            font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
+            color: #4ade80; background: rgba(0,0,0,0.65);
+            padding: 8px 10px; border-radius: 8px; pointer-events: none;
+        }
     </style>
 
     <script>
+        /* ============================================================
+           OCLUSOR INVISIBLE (recorta la malla de la cabeza real)
+           ============================================================ */
         AFRAME.registerComponent('oclusor-invisible', {
             init: function () {
                 this.el.addEventListener('model-loaded', () => {
                     const obj = this.el.getObject3D('mesh');
-                    if (obj) {
-                        obj.traverse((node) => {
-                            if (node.isMesh && node.material) {
-                                node.material.colorWrite = false;
-                                node.renderOrder = -1;
-                            }
-                        });
-                    }
+                    if (!obj) return;
+                    obj.traverse((node) => {
+                        if (node.isMesh && node.material) {
+                            node.material.colorWrite = false;
+                            node.material.depthWrite = true;
+                            node.renderOrder = -1;
+                        }
+                    });
                 });
             }
         });
 
-        AFRAME.registerComponent('detector-gesto-boca', {
-            schema: { umbral: { type: 'number', default: 0.04 } },
-            init: function() {
-                this.labioSup = document.querySelector('#labio-sup');
-                this.labioInf = document.querySelector('#labio-inf');
-                this.humoIzq = document.querySelector('#humo-izquierdo');
-                this.humoDer = document.querySelector('#humo-derecho');
-                this.sonido = document.querySelector('#alerta-gas');
-                this.activo = false;
-                this.ultimoDisparo = 0;
+        /* ============================================================
+           MÁSCARA REACTIVA
+           - Detecta apertura/cierre de boca con medida NORMALIZADA
+           - Humo y sonido SOLO mientras la boca está abierta
+           - Ajusta la escala de la máscara al tamaño del rostro
+           ============================================================ */
+        AFRAME.registerComponent('mascara-reactiva', {
+            schema: {
+                umbralAbrir:     { type: 'number',  default: 0.15 }, // ratio para ABRIR
+                umbralCerrar:    { type: 'number',  default: 0.09 }, // ratio para CERRAR (histéresis)
+                suavizado:       { type: 'number',  default: 0.35 }, // 0..1 suavizado del ratio
+                ajusteAuto:      { type: 'boolean', default: true }, // escalar según rostro
+                anchoRelativo:   { type: 'number',  default: 1.15 }, // ancho máscara / ancho rostro
+                escalaManual:    { type: 'number',  default: 1.00 }, // multiplicador extra
+                intervaloAjuste: { type: 'number',  default: 300 }   // ms entre recalibrados
             },
-            tick: function() {
-                if (!this.labioSup || !this.labioInf) return;
-                if (!this.labioSup.object3D || !this.labioInf.object3D) return;
 
-                const posSup = new THREE.Vector3();
-                const posInf = new THREE.Vector3();
-                this.labioSup.object3D.getWorldPosition(posSup);
-                this.labioInf.object3D.getWorldPosition(posInf);
-                const distancia = posSup.distanceTo(posInf);
+            init: function () {
+                const $ = (s) => document.querySelector(s);
 
-                const ahora = performance.now();
-                if (distancia > this.data.umbral && !this.activo && (ahora - this.ultimoDisparo) > 2000) {
-                    this.activo = true;
-                    this.ultimoDisparo = ahora;
+                /* Anclas de seguimiento facial */
+                this.labioSup   = $('#labio-sup');
+                this.labioInf   = $('#labio-inf');
+                this.ojoIzq     = $('#ojo-izq');
+                this.ojoDer     = $('#ojo-der');
+                this.mejillaIzq = $('#mejilla-izq');
+                this.mejillaDer = $('#mejilla-der');
 
-                    if (this.humoIzq) this.humoIzq.setAttribute('visible', 'true');
-                    if (this.humoDer) this.humoDer.setAttribute('visible', 'true');
+                /* Objetos de la máscara */
+                this.grupo   = $('#mascara-grupo');
+                this.modelo  = $('#mascara-modelo');
+                this.humoIzq = $('#humo-izquierdo');
+                this.humoDer = $('#humo-derecho');
+                this.sonido  = $('#alerta-gas');
 
-                    if (this.sonido && this.sonido.components && this.sonido.components.sound) {
-                        try { this.sonido.components.sound.playSound(); } catch (e) {}
+                /* Utilidades */
+                this.vA = new THREE.Vector3();
+                this.vB = new THREE.Vector3();
+                this.vEscala = new THREE.Vector3();
+
+                /* Estado */
+                this.bocaAbierta  = false;
+                this.ratioSuave   = 0;
+                this.ratioListo   = false;
+                this.escala       = 1;
+                this.anchoModelo  = 0;   // ancho del modelo en su espacio local
+                this.ultimoAjuste = 0;
+
+                /* Panel de depuración (añade ?debug=1 a la URL) */
+                this.depurar = document.getElementById('depurar');
+                this.mostrarDepurar = /[?&]debug=1/.test(window.location.search);
+                if (this.depurar && this.mostrarDepurar) {
+                    this.depurar.style.display = 'block';
+                }
+
+                /* Medir el ancho real del modelo cuando cargue */
+                if (this.modelo) {
+                    this.modelo.addEventListener('model-loaded', () => {
+                        this.anchoModelo = this._anchoLocal(this.modelo.getObject3D('mesh'));
+                    });
+                }
+            },
+
+            update: function (oldData) {
+                // Si el ajuste automático está desactivado, aplicamos la escala manual
+                if (!this.data.ajusteAuto && this.grupo) {
+                    this.escala = this.data.escalaManual;
+                    this._aplicarEscala(this.escala);
+                }
+            },
+
+            /* ---------- Utilidades ---------- */
+
+            /* Distancia entre dos anclas (en unidades del mundo). -1 si no válida */
+            _distancia: function (a, b) {
+                if (!a || !b || !a.object3D || !b.object3D) return -1;
+                a.object3D.getWorldPosition(this.vA);
+                b.object3D.getWorldPosition(this.vB);
+                const d = this.vA.distanceTo(this.vB);
+                return (isFinite(d) && d > 0.00001) ? d : -1;
+            },
+
+            /* Ancho del modelo medido en su propio espacio local (sin rotación externa) */
+            _anchoLocal: function (raiz) {
+                if (!raiz) return 0;
+                try {
+                    raiz.updateWorldMatrix(true, true);
+                    const inversa = new THREE.Matrix4().copy(raiz.matrixWorld).invert();
+                    const caja    = new THREE.Box3();
+                    const cajaNodo= new THREE.Box3();
+                    const matriz  = new THREE.Matrix4();
+
+                    raiz.traverse(function (nodo) {
+                        if (!nodo.isMesh || !nodo.geometry) return;
+                        if (!nodo.geometry.boundingBox) nodo.geometry.computeBoundingBox();
+                        if (!nodo.geometry.boundingBox) return;
+                        matriz.copy(inversa).multiply(nodo.matrixWorld);
+                        cajaNodo.copy(nodo.geometry.boundingBox).applyMatrix4(matriz);
+                        caja.union(cajaNodo);
+                    });
+
+                    if (caja.isEmpty()) return 0;
+                    return Math.abs(caja.max.x - caja.min.x);
+                } catch (e) {
+                    return 0;
+                }
+            },
+
+            _aplicarEscala: function (s) {
+                if (!this.grupo) return;
+                this.grupo.setAttribute('scale', { x: s, y: s, z: s });
+            },
+
+            /* ---------- Acciones ---------- */
+
+            abrirBoca: function () {
+                if (this.bocaAbierta) return;
+                this.bocaAbierta = true;
+
+                if (this.humoIzq) this.humoIzq.setAttribute('visible', true);
+                if (this.humoDer) this.humoDer.setAttribute('visible', true);
+
+                const sonido = this.sonido && this.sonido.components && this.sonido.components.sound;
+                if (sonido) {
+                    try { sonido.playSound(); }
+                    catch (e) { try { sonido.play && sonido.play(); } catch (e2) {} }
+                }
+
+                if (navigator.vibrate) {
+                    try { navigator.vibrate(80); } catch (e) {}
+                }
+            },
+
+            cerrarBoca: function () {
+                if (!this.bocaAbierta) return;
+                this.bocaAbierta = false;
+
+                if (this.humoIzq) this.humoIzq.setAttribute('visible', false);
+                if (this.humoDer) this.humoDer.setAttribute('visible', false);
+
+                const sonido = this.sonido && this.sonido.components && this.sonido.components.sound;
+                if (sonido) {
+                    try {
+                        if (typeof sonido.stopSound === 'function') sonido.stopSound();
+                        else if (typeof sonido.stop === 'function') sonido.stop();
+                    } catch (e) {}
+                }
+            },
+
+            /* ---------- Ajuste de escala según el rostro ---------- */
+
+            _ajustarEscala: function () {
+                if (!this.grupo || !this.modelo) return;
+
+                if (!this.anchoModelo) {
+                    const obj = this.modelo.getObject3D('mesh');
+                    if (obj) this.anchoModelo = this._anchoLocal(obj);
+                }
+                if (!this.anchoModelo) return;
+
+                const anchoRostro = this._distancia(this.mejillaIzq, this.mejillaDer);
+                if (anchoRostro <= 0) return;
+
+                /* Escala del mundo que está afectando al modelo (incluye la del grupo) */
+                if (this.grupo.object3D.parent) {
+                    this.grupo.object3D.parent.updateWorldMatrix(true, false);
+                }
+                this.modelo.object3D.updateWorldMatrix(true, false);
+                this.vEscala.setFromMatrixScale(this.modelo.object3D.matrixWorld);
+                const escalaMundo = this.vEscala.x;
+                if (!isFinite(escalaMundo) || escalaMundo <= 0) return;
+
+                /* Escala base = mundo / escala actual del grupo */
+                const escalaBase = escalaMundo / (this.escala || 1);
+                const anchoBase  = this.anchoModelo * escalaBase;
+                if (!isFinite(anchoBase) || anchoBase <= 0.00001) return;
+
+                /* Objetivo: la máscara debe medir "anchoRelativo" veces el ancho del rostro */
+                const objetivo = (anchoRostro * this.data.anchoRelativo * this.data.escalaManual) / anchoBase;
+                const limitado = Math.max(0.05, Math.min(20, objetivo));
+
+                /* Convergencia suave para evitar saltos */
+                this.escala += (limitado - this.escala) * 0.25;
+                this._aplicarEscala(this.escala);
+            },
+
+            /* ---------- Bucle principal ---------- */
+
+            tick: function (time) {
+                /* 1) DETECCIÓN DE BOCA ------------------------------------ */
+                const apertura = this._distancia(this.labioSup, this.labioInf);
+                const refOjos  = this._distancia(this.ojoIzq, this.ojoDer);
+
+                if (apertura > 0 && refOjos > 0) {
+                    const ratio = apertura / refOjos;
+
+                    if (!this.ratioListo) {
+                        this.ratioSuave = ratio;
+                        this.ratioListo = true;
+                    } else {
+                        this.ratioSuave += (ratio - this.ratioSuave) * this.data.suavizado;
                     }
-                    if (navigator.vibrate) { try { navigator.vibrate(80); } catch (e) {} }
 
-                    setTimeout(() => {
-                        if (this.humoIzq) this.humoIzq.setAttribute('visible', 'false');
-                        if (this.humoDer) this.humoDer.setAttribute('visible', 'false');
-                        this.activo = false;
-                    }, 2000);
+                    if (!this.bocaAbierta && this.ratioSuave >= this.data.umbralAbrir) {
+                        this.abrirBoca();
+                    } else if (this.bocaAbierta && this.ratioSuave <= this.data.umbralCerrar) {
+                        this.cerrarBoca();
+                    }
+
+                    if (this.depurar && this.mostrarDepurar) {
+                        this.depurar.textContent =
+                            'ratio boca : ' + this.ratioSuave.toFixed(3) + '\n' +
+                            'abrir/cerrar: ' + this.data.umbralAbrir + ' / ' + this.data.umbralCerrar + '\n' +
+                            'estado      : ' + (this.bocaAbierta ? 'ABIERTA' : 'cerrada') + '\n' +
+                            'escala      : ' + this.escala.toFixed(3);
+                    }
+                }
+
+                /* 2) AJUSTE DE ESCALA -------------------------------------- */
+                if (this.data.ajusteAuto && (time - this.ultimoAjuste) > this.data.intervaloAjuste) {
+                    this.ultimoAjuste = time;
+                    this._ajustarEscala();
                 }
             }
         });
@@ -142,6 +336,7 @@
     </div>
 
     <div id="instruccion">👄 Abre la boca para activar la máscara</div>
+    <div id="depurar"></div>
 
     <a-scene
         mindar-face="autoStart: false; maxTrack: 1; filterMinCF: 0.001; filterBeta: 0.01; missTolerance: 3; warmupTolerance: 2"
@@ -152,7 +347,7 @@
         vr-mode-ui="enabled: false"
         device-orientation-permission-ui="enabled: false"
         loading-screen="enabled: false"
-        detector-gesto-boca>
+        mascara-reactiva="umbralAbrir: 0.15; umbralCerrar: 0.09; anchoRelativo: 1.15; ajusteAuto: true">
 
         <a-assets timeout="15000">
             <a-asset-item id="mascara-gas" src="./mascara_gas.glb"></a-asset-item>
@@ -166,30 +361,55 @@
 
         <a-camera active="false" position="0 0 0"></a-camera>
 
-        <a-entity id="labio-sup" mindar-face-target="anchorIndex: 13"></a-entity>
-        <a-entity id="labio-inf" mindar-face-target="anchorIndex: 14"></a-entity>
+        <!-- ===== Anclas de seguimiento facial ===== -->
+        <a-entity id="labio-sup"   mindar-face-target="anchorIndex: 13"></a-entity>
+        <a-entity id="labio-inf"   mindar-face-target="anchorIndex: 14"></a-entity>
+        <a-entity id="ojo-izq"     mindar-face-target="anchorIndex: 33"></a-entity>
+        <a-entity id="ojo-der"     mindar-face-target="anchorIndex: 263"></a-entity>
+        <a-entity id="mejilla-izq" mindar-face-target="anchorIndex: 234"></a-entity>
+        <a-entity id="mejilla-der" mindar-face-target="anchorIndex: 454"></a-entity>
 
+        <!-- ===== Ancla principal del rostro (entre las cejas) ===== -->
         <a-entity mindar-face-target="anchorIndex: 168">
-            <a-entity gltf-model="#cabeza-molde" oclusor-invisible scale="0.075 0.075 0.075"></a-entity>
-            <a-entity gltf-model="#mascara-gas"
-                rotation="0 180 0"
-                position="0 -0.25 0.05"
-                scale="1.6 1.6 1.6"
-                animation-mixer></a-entity>
 
-            <a-image id="humo-izquierdo" src="#textura-humo" position="-0.7 -0.45 0.7" rotation="0 0 20" scale="0.4 0.4 0.4" visible="false"></a-image>
-            <a-image id="humo-derecho" src="#textura-humo" position="0.7 -0.45 0.7" rotation="0 0 -20" scale="0.4 0.4 0.4" visible="false"></a-image>
+            <!-- Oclusor de la cabeza real -->
+            <a-entity gltf-model="#cabeza-molde"
+                      oclusor-invisible
+                      scale="0.075 0.075 0.075"></a-entity>
 
-            <a-entity id="alerta-gas" sound="src: #audio-gas; volume: 1; poolSize: 2"></a-entity>
+            <!-- Grupo que se reescala automáticamente según el tamaño del rostro -->
+            <a-entity id="mascara-grupo" scale="1 1 1">
+
+                <a-entity id="mascara-modelo"
+                          gltf-model="#mascara-gas"
+                          rotation="0 180 0"
+                          position="0 -0.25 0.05"
+                          scale="1.6 1.6 1.6"
+                          animation-mixer></a-entity>
+
+                <a-image id="humo-izquierdo" src="#textura-humo"
+                         position="-0.7 -0.45 0.7" rotation="0 0 20"
+                         scale="0.4 0.4 0.4" visible="false"></a-image>
+
+                <a-image id="humo-derecho" src="#textura-humo"
+                         position="0.7 -0.45 0.7" rotation="0 0 -20"
+                         scale="0.4 0.4 0.4" visible="false"></a-image>
+
+            </a-entity>
+
+            <!-- Sonido de alerta (se reproduce SOLO con la boca abierta) -->
+            <a-entity id="alerta-gas"
+                      sound="src: #audio-gas; volume: 1; poolSize: 2"></a-entity>
+
         </a-entity>
     </a-scene>
 
     <script>
         (function () {
-            const overlay = document.getElementById('overlay-inicio');
-            const btn = document.getElementById('btn-iniciar');
-            const estado = document.getElementById('estado');
-            const errorBox = document.getElementById('mensaje-error');
+            const overlay   = document.getElementById('overlay-inicio');
+            const btn       = document.getElementById('btn-iniciar');
+            const estado    = document.getElementById('estado');
+            const errorBox  = document.getElementById('mensaje-error');
             let arrancado = false;
 
             function mostrarError(msg) {
@@ -201,10 +421,12 @@
                 arrancado = false;
             }
             function mostrarEstado(msg) { estado.textContent = msg; }
+
             function esContextoSeguro() {
                 return window.isSecureContext || location.protocol === 'https:' ||
                        location.hostname === 'localhost' || location.hostname === '127.0.0.1';
             }
+
             function forzarVideoVisible() {
                 document.querySelectorAll('video').forEach(function (v) {
                     v.style.setProperty('position', 'fixed', 'important');
@@ -224,6 +446,20 @@
                     const p = v.play();
                     if (p && p.catch) p.catch(function () {});
                 });
+            }
+
+            /* Desbloquear el audio en iOS con el gesto del usuario */
+            function desbloquearAudio() {
+                try {
+                    if (window.THREE && THREE.AudioContext && THREE.AudioContext.getContext) {
+                        const ctx = THREE.AudioContext.getContext();
+                        if (ctx && ctx.state === 'suspended') ctx.resume();
+                    }
+                } catch (e) {}
+                try {
+                    const a = document.querySelector('#audio-gas');
+                    if (a) { a.load(); }
+                } catch (e) {}
             }
 
             async function pedirPermisoCamara() {
@@ -266,16 +502,19 @@
 
             function arrancarMindAR() {
                 const scene = document.querySelector('a-scene');
+
                 function intentar() {
                     const sistema = obtenerSistemaMindAR(scene);
                     if (!sistema) { mostrarError('No se encontró el sistema de MindAR.'); return; }
                     try { sistema.start(); }
                     catch (e) { mostrarError('Error: ' + (e.message || e)); return; }
+
                     let intentos = 0;
                     const timer = setInterval(() => {
                         forzarVideoVisible();
                         if (++intentos > 30) clearInterval(timer);
                     }, 150);
+
                     const checkVideo = setInterval(() => {
                         const v = document.querySelector('video');
                         if (v && v.readyState >= 2) {
@@ -283,8 +522,10 @@
                             overlay.classList.add('oculto');
                         }
                     }, 200);
+
                     setTimeout(() => overlay.classList.add('oculto'), 8000);
                 }
+
                 if (scene.hasLoaded) setTimeout(intentar, 200);
                 else scene.addEventListener('loaded', () => setTimeout(intentar, 200), { once: true });
             }
@@ -295,9 +536,14 @@
                 btn.disabled = true;
                 errorBox.classList.remove('visible');
                 errorBox.textContent = '';
+
                 if (!esContextoSeguro()) { mostrarError('Esta página NO está en HTTPS.'); return; }
+
+                desbloquearAudio();
+
                 try { await pedirPermisoCamara(); }
                 catch (e) { mostrarError(e.message || String(e)); return; }
+
                 arrancarMindAR();
             }
 
@@ -306,9 +552,16 @@
 
             document.addEventListener('gesturestart', e => e.preventDefault());
             document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+
             setInterval(forzarVideoVisible, 2000);
-            window.addEventListener('resize', () => setTimeout(() => { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 300));
-            window.addEventListener('orientationchange', () => setTimeout(() => { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 500));
+            window.addEventListener('resize', () => setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+                forzarVideoVisible();
+            }, 300));
+            window.addEventListener('orientationchange', () => setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+                forzarVideoVisible();
+            }, 500));
         })();
     </script>
 </body>
