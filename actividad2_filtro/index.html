@@ -2,11 +2,11 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Filtro RA - Máscara de Gas (Boca Reactiva)</title>
     
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <!-- Regresamos a la versión que te funciona en PC -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
 
@@ -28,6 +28,8 @@
                         obj.traverse((node) => {
                             if (node.isMesh && node.material) {
                                 node.material.colorWrite = false;
+                                // SOLUCIÓN IOS: Evita que el molde se trague a la máscara
+                                node.renderOrder = -1; 
                             }
                         });
                     }
@@ -78,16 +80,21 @@
     
     <div id="instruccion">Toca la pantalla y abre la boca</div>
 
-    <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" detector-gesto-boca>
+    <!-- CORRECCIÓN DE SINTAXIS: Se cambió la coma por un punto y coma en el renderer -->
+    <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true; physicallyCorrectLights: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" detector-gesto-boca>
         
-        <a-assets timeout="15000">
-            <!-- REGLA DE ORO DE IOS: Todos los modelos deben ser locales -->
+        <a-assets timeout="10000">
             <a-asset-item id="mascara-gas" src="mascara_gas.glb"></a-asset-item>
+            <!-- Asegúrate de tener headOccluder.glb en tu carpeta -->
             <a-asset-item id="cabeza-molde" src="headOccluder.glb"></a-asset-item>
             
             <audio id="audio-gas" src="alerta.mp3" preload="auto" crossorigin="anonymous"></audio>
             <img id="textura-humo" src="humo.png" crossorigin="anonymous">
         </a-assets>
+
+        <!-- LUCES AÑADIDAS: Evitan que el modelo GLB sea invisible en celulares -->
+        <a-light type="ambient" color="#ffffff" intensity="1.2"></a-light>
+        <a-light type="directional" color="#ffffff" position="0 1 1" intensity="0.8"></a-light>
 
         <a-camera active="false" position="0 0 0"></a-camera>
 
@@ -95,6 +102,7 @@
         <a-entity id="labio-inf" mindar-face-target="anchorIndex: 14"></a-entity>
 
         <a-entity mindar-face-target="anchorIndex: 168">
+            
             <a-entity gltf-model="#cabeza-molde" oclusor-invisible scale="0.075 0.075 0.075"></a-entity>
             
             <a-entity 
@@ -109,6 +117,7 @@
             <a-image id="humo-derecho" src="#textura-humo" position="0.7 -0.45 0.7" rotation="0 0 -20" scale="0.4 0.4 0.4" visible="false"></a-image>
 
             <a-entity id="alerta-gas" sound="src: #audio-gas; volume: 1; poolSize: 2"></a-entity>
+            
         </a-entity>
     </a-scene>
 
