@@ -163,7 +163,7 @@
             init: function () {
                 this.recogido = false;
                 
-                // Animación de rotación constante
+                // Rotación constante a todo el bloque (hitbox + modelo)
                 this.el.setAttribute('animation__rot', {
                     property: 'rotation', to: '0 360 0',
                     dur: 3000, loop: true, easing: 'linear'
@@ -171,10 +171,8 @@
 
                 this.resetearPosicion();
 
-                // Escuchamos mousedown y click para abarcar todos los métodos táctiles
-                this.el.addEventListener('mousedown', this.recoger.bind(this));
+                // Escuchamos el click sintético generado por el raycaster
                 this.el.addEventListener('click', this.recoger.bind(this));
-                this.el.addEventListener('touchstart', this.recoger.bind(this), { passive: false });
             },
             tick: function (time, timeDelta) {
                 if (!EstadoJuego.activo || this.recogido) return;
@@ -190,16 +188,17 @@
             },
             resetearPosicion: function() {
                 const xAleatorio = (Math.random() - 0.5) * 1.5; 
-                const zAleatorio = 0.1 + (Math.random() * 0.2); 
+                // Colocamos en Z=0.3 para que floten más cerca de la cámara y no choquen con el marcador
+                const zAleatorio = 0.3 + (Math.random() * 0.2); 
                 const yInicio = 1.0 + Math.random() * 0.5;      
 
+                this.el.removeAttribute('animation__pop');
                 this.el.setAttribute('position', { x: xAleatorio, y: yInicio, z: zAleatorio });
-                this.el.setAttribute('scale', '1 1 1');
+                this.el.setAttribute('scale', '1 1 1'); // La hitbox siempre vuelve a escala 1
                 this.recogido = false;
             },
             recoger: function (evento) {
                 if (!EstadoJuego.activo || this.recogido) return;
-                if (evento && evento.cancelable) evento.preventDefault();
                 
                 this.recogido = true;
                 
@@ -208,8 +207,9 @@
                 playDing();
                 vibrar(60);
                 
+                // Encogemos la hitbox a 0 para dar el efecto de que el objeto desaparece
                 this.el.setAttribute('animation__pop', {
-                    property: 'scale', to: '0 0 0', dur: 200, easing: 'easeInBack'
+                    property: 'scale', to: '0 0 0', dur: 150, easing: 'easeInBack'
                 });
                 this.crearExplosion();
                 
@@ -320,32 +320,38 @@
         <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
         <a-light type="directional" color="#ffffff" position="1 1 1" intensity="1"></a-light>
 
-        <!-- Raycaster optimizado: interval=0 y targeteado a las hitboxes invisibles -->
+        <!-- Raycaster optimizado: interval=0 y far=20 para detectar toques precisos al instante -->
         <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false"
             cursor="fuse: false; rayOrigin: mouse"
-            raycaster="objects: .hitbox; far: 20; interval: 0"></a-camera>
+            raycaster="objects: .clickable; far: 20; interval: 0"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
             
             <!-- Cristal Azul -->
-            <a-entity cristal="puntos: 10; velocidad: 0.3">
-                <a-entity gltf-model="#modelo1" scale="0.15 0.15 0.15"></a-entity>
-                <!-- Hitbox invisible -->
-                <a-sphere class="hitbox" radius="0.25" material="opacity: 0; transparent: true; depthWrite: false"></a-sphere>
+            <!-- La entidad padre funciona como Hitbox (Caja de colisión). Opacidad 0.01 es indetectable al ojo pero sólida para el click -->
+            <a-entity class="clickable" cristal="puntos: 10; velocidad: 0.25" 
+                      geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.5" 
+                      material="color: #fff; opacity: 0.01; transparent: true; depthWrite: false">
+                <!-- Escala independiente para igualar tamaño visual -->
+                <a-entity gltf-model="#modelo1" scale="0.15 0.15 0.15" position="0 -0.1 0"></a-entity>
             </a-entity>
             
-            <!-- Cristal Rojo: Escala drásticamente reducida al 0.005 -->
-            <a-entity cristal="puntos: 15; velocidad: 0.4">
-                <a-entity gltf-model="#modelo2" scale="0.005 0.005 0.005"></a-entity>
-                <!-- Hitbox invisible -->
-                <a-sphere class="hitbox" radius="0.25" material="opacity: 0; transparent: true; depthWrite: false"></a-sphere>
+            <!-- Cristal Rojo -->
+            <!-- Hitbox -->
+            <a-entity class="clickable" cristal="puntos: 15; velocidad: 0.35" 
+                      geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.5" 
+                      material="color: #fff; opacity: 0.01; transparent: true; depthWrite: false">
+                <!-- Modelo Rojo: Escala ultra reducida a 0.008 para compensar su tamaño nativo -->
+                <a-entity gltf-model="#modelo2" scale="0.008 0.008 0.008" position="0 -0.1 0"></a-entity>
             </a-entity>
             
             <!-- Cristal Verde -->
-            <a-entity cristal="puntos: 20; velocidad: 0.5">
-                <a-entity gltf-model="#modelo3" scale="0.3 0.3 0.3"></a-entity>
-                <!-- Hitbox invisible -->
-                <a-sphere class="hitbox" radius="0.25" material="opacity: 0; transparent: true; depthWrite: false"></a-sphere>
+            <!-- Hitbox -->
+            <a-entity class="clickable" cristal="puntos: 20; velocidad: 0.45" 
+                      geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.5" 
+                      material="color: #fff; opacity: 0.01; transparent: true; depthWrite: false">
+                <!-- Modelo Verde: Escala ultra reducida a 0.008 para compensar su tamaño nativo -->
+                <a-entity gltf-model="#modelo3" scale="0.008 0.008 0.008" position="0 -0.1 0"></a-entity>
             </a-entity>
                 
             <a-ring position="0 0 0" rotation="-90 0 0"
