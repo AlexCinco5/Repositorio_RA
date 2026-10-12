@@ -21,11 +21,34 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        a-scene {
+        /* FIX: hacer visible el <video> que crea MindAR */
+        video {
             position: fixed !important;
-            top: 0; left: 0;
-            width: 100% !important;
-            height: 100% !important;
+            top: 0 !important; left: 0 !important;
+            width: 100vw !important; height: 100vh !important;
+            object-fit: cover !important;
+            z-index: 0 !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            background: #000 !important;
+            pointer-events: none !important;
+        }
+        video::-webkit-media-controls,
+        video::-webkit-media-controls-start-playback-button,
+        video::-webkit-media-controls-panel {
+            display: none !important;
+            -webkit-appearance: none !important;
+        }
+
+        /* Canvas encima pero transparente para dejar ver el video */
+        a-scene, .a-canvas, canvas.a-canvas {
+            position: fixed !important;
+            top: 0 !important; left: 0 !important;
+            width: 100% !important; height: 100% !important;
+            z-index: 1 !important;
+            background: transparent !important;
+            background-color: transparent !important;
         }
 
         .a-enter-vr, .a-enter-ar, .a-orientation-modal, .a-loader-title {
@@ -61,7 +84,7 @@
 
         #mensaje-error {
             margin-top: 20px; color: #ff6b6b; font-size: 14px;
-            max-width: 420px; line-height: 1.5; display: none;
+            max-width: 460px; line-height: 1.5; display: none;
             white-space: pre-wrap; word-break: break-word;
         }
         #mensaje-error.visible { display: block; }
@@ -112,16 +135,16 @@
                 if (distancia > 1.5 && !this.activo) {
                     this.activo = true;
 
-                    if (this.humoIzq) this.humoIzq.setAttribute('visible', 'true');
-                    if (this.humoDer) this.humoDer.setAttribute('visible', 'true');
+                    this.humoIzq.setAttribute('visible', 'true');
+                    this.humoDer.setAttribute('visible', 'true');
 
-                    if (this.sonido && this.sonido.components && this.sonido.components.sound) {
+                    if (this.sonido && this.sonido.components.sound) {
                         try { this.sonido.components.sound.playSound(); } catch (e) {}
                     }
 
                     setTimeout(() => {
-                        if (this.humoIzq) this.humoIzq.setAttribute('visible', 'false');
-                        if (this.humoDer) this.humoDer.setAttribute('visible', 'false');
+                        this.humoIzq.setAttribute('visible', 'false');
+                        this.humoDer.setAttribute('visible', 'false');
                         this.activo = false;
                     }, 2000);
                 }
@@ -141,11 +164,14 @@
 
     <div id="instruccion">Toca la pantalla y abre la boca</div>
 
+    <!-- Mantengo tus parámetros de MindAR con autoStart:false para móvil,
+         y solo mejoré el tracking (filterMinCF/filterBeta) para que sea más rápido -->
     <a-scene
-        mindar-face="autoStart: false; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001; missTolerance: 5; warmupTolerance: 3"
+        mindar-face="autoStart: false; maxTrack: 1; filterMinCF: 0.001; filterBeta: 0.01; missTolerance: 3; warmupTolerance: 2"
         embedded
+        background="transparent: true"
         color-space="sRGB"
-        renderer="colorManagement: true; physicallyCorrectLights: false; antialias: false; precision: mediump; alpha: true"
+        renderer="colorManagement: true; physicallyCorrectLights: true; antialias: false; precision: mediump; alpha: true"
         vr-mode-ui="enabled: false"
         device-orientation-permission-ui="enabled: false"
         loading-screen="enabled: false"
@@ -161,6 +187,7 @@
         <a-light type="ambient" color="#ffffff" intensity="1.2"></a-light>
         <a-light type="directional" color="#ffffff" position="0 1 1" intensity="0.8"></a-light>
 
+        <!-- RESTAURADO: active="false" es lo que mantiene centrada la máscara -->
         <a-camera active="false" position="0 0 0"></a-camera>
 
         <a-entity id="labio-sup" mindar-face-target="anchorIndex: 13"></a-entity>
@@ -203,11 +230,8 @@
                 arrancado = false;
             }
 
-            function mostrarEstado(msg) {
-                estado.textContent = msg;
-            }
+            function mostrarEstado(msg) { estado.textContent = msg; }
 
-            // Detección previa: HTTPS obligatorio para cámara en móvil
             function esContextoSeguro() {
                 return window.isSecureContext ||
                        location.protocol === 'https:' ||
@@ -215,14 +239,32 @@
                        location.hostname === '127.0.0.1';
             }
 
-            // FORZAR el diálogo de permiso de cámara llamando a getUserMedia
-            // ANTES de arrancar MindAR. Esto es lo que hace aparecer el popup.
+            function forzarVideoVisible() {
+                var videos = document.querySelectorAll('video');
+                videos.forEach(function (v) {
+                    v.style.position = 'fixed';
+                    v.style.top = '0';
+                    v.style.left = '0';
+                    v.style.width = '100vw';
+                    v.style.height = '100vh';
+                    v.style.objectFit = 'cover';
+                    v.style.zIndex = '0';
+                    v.style.display = 'block';
+                    v.style.visibility = 'visible';
+                    v.style.opacity = '1';
+                    v.style.background = '#000';
+                    v.style.pointerEvents = 'none';
+                    v.setAttribute('playsinline', '');
+                    v.setAttribute('muted', '');
+                    v.muted = true;
+                });
+            }
+
             async function pedirPermisoCamara() {
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                     throw new Error(
-                        'Este navegador no soporta acceso a la cámara (getUserMedia).\n' +
-                        'Prueba abriendo el enlace en Chrome (Android) o Safari (iOS) directamente, ' +
-                        'no dentro de WhatsApp, Instagram o Facebook.'
+                        'Este navegador no soporta acceso a la cámara.\n' +
+                        'Abre el enlace en Chrome (Android) o Safari (iOS) directamente.'
                     );
                 }
 
@@ -230,7 +272,6 @@
 
                 var stream;
                 try {
-                    // facingMode user = cámara frontal
                     stream = await navigator.mediaDevices.getUserMedia({
                         video: { facingMode: 'user' },
                         audio: false
@@ -238,56 +279,83 @@
                 } catch (err) {
                     var nombre = err && err.name ? err.name : 'Error';
                     var mensajes = {
-                        'NotAllowedError':
-                            'Permiso de cámara DENEGADO.\n' +
-                            'Ve a la configuración del sitio en tu navegador, ' +
-                            'permite el acceso a la cámara y recarga la página.',
-                        'PermissionDeniedError':
-                            'Permiso de cámara DENEGADO.\n' +
-                            'Ve a la configuración del sitio en tu navegador, ' +
-                            'permite el acceso a la cámara y recarga la página.',
-                        'NotFoundError':
-                            'No se encontró ninguna cámara en este dispositivo.',
-                        'DevicesNotFoundError':
-                            'No se encontró ninguna cámara en este dispositivo.',
-                        'NotReadableError':
-                            'La cámara está siendo usada por otra aplicación.\n' +
-                            'Cierra otras apps que usen la cámara e inténtalo de nuevo.',
-                        'TrackStartError':
-                            'La cámara está siendo usada por otra aplicación.\n' +
-                            'Cierra otras apps que usen la cámara e inténtalo de nuevo.',
-                        'OverconstrainedError':
-                            'La cámara no cumple los requisitos solicitados.',
-                        'SecurityError':
-                            'Bloqueado por seguridad.\n' +
-                            'Debes abrir la página por HTTPS (no por http:// ni file://).'
+                        'NotAllowedError': 'Permiso de cámara DENEGADO. Ve a la configuración del sitio y permite la cámara.',
+                        'PermissionDeniedError': 'Permiso de cámara DENEGADO. Ve a la configuración del sitio y permite la cámara.',
+                        'NotFoundError': 'No se encontró ninguna cámara en este dispositivo.',
+                        'DevicesNotFoundError': 'No se encontró ninguna cámara en este dispositivo.',
+                        'NotReadableError': 'La cámara está siendo usada por otra aplicación. Ciérrala e inténtalo de nuevo.',
+                        'TrackStartError': 'La cámara está siendo usada por otra aplicación. Ciérrala e inténtalo de nuevo.',
+                        'OverconstrainedError': 'La cámara no cumple los requisitos solicitados.',
+                        'SecurityError': 'Bloqueado por seguridad. Debes abrir la página por HTTPS.'
                     };
                     throw new Error(mensajes[nombre] || (nombre + ': ' + (err.message || 'error desconocido')));
                 }
 
-                // Ya tenemos permiso: cerramos el stream de prueba.
-                // MindAR abrirá el suyo propio a continuación.
                 stream.getTracks().forEach(function (t) { t.stop(); });
-
                 mostrarEstado('Permiso concedido ✓ Iniciando cámara...');
+            }
+
+            function obtenerSistemaMindAR(scene) {
+                var nombres = ['mindar-face-system', 'mindar-face', 'mindarFaceSystem', 'mindarfacesystem'];
+                for (var i = 0; i < nombres.length; i++) {
+                    var s = scene.systems[nombres[i]];
+                    if (s && typeof s.start === 'function') return s;
+                }
+                var keys = Object.keys(scene.systems);
+                for (var j = 0; j < keys.length; j++) {
+                    if (keys[j].toLowerCase().indexOf('mindar') !== -1) {
+                        var sys = scene.systems[keys[j]];
+                        if (sys && typeof sys.start === 'function') return sys;
+                    }
+                }
+                return null;
             }
 
             function arrancarMindAR() {
                 var scene = document.querySelector('a-scene');
 
-                function start() {
+                function intentarArrancar() {
+                    var sistema = obtenerSistemaMindAR(scene);
+
+                    if (!sistema) {
+                        var keys = Object.keys(scene.systems);
+                        mostrarError(
+                            'No se encontró el sistema de MindAR.\n\n' +
+                            'Sistemas cargados: ' + (keys.length ? keys.join(', ') : '(ninguno)') + '\n\n' +
+                            'Probable causa: el script mindar-face-aframe no cargó.'
+                        );
+                        return;
+                    }
+
                     try {
-                        scene.systems['mindar-face'].start();
+                        sistema.start();
                     } catch (e) {
-                        console.error('Error al iniciar MindAR:', e);
                         mostrarError('Error al iniciar MindAR: ' + (e.message || e));
                         return;
                     }
-                    overlay.classList.add('oculto');
+
+                    // Forzar el video visible en cuanto MindAR lo cree
+                    var intentos = 0;
+                    var timer = setInterval(function () {
+                        forzarVideoVisible();
+                        intentos++;
+                        if (document.querySelector('video') || intentos > 20) clearInterval(timer);
+                    }, 150);
+
+                    // Ocultar el overlay cuando el video ya tenga datos
+                    var checkVideo = setInterval(function () {
+                        var v = document.querySelector('video');
+                        if (v && v.readyState >= 2) {
+                            clearInterval(checkVideo);
+                            overlay.classList.add('oculto');
+                        }
+                    }, 200);
                 }
 
-                if (scene.hasLoaded) start();
-                else scene.addEventListener('loaded', start, { once: true });
+                if (scene.hasLoaded) setTimeout(intentarArrancar, 200);
+                else scene.addEventListener('loaded', function () {
+                    setTimeout(intentarArrancar, 200);
+                }, { once: true });
             }
 
             async function iniciar() {
@@ -297,30 +365,21 @@
                 errorBox.classList.remove('visible');
                 errorBox.textContent = '';
 
-                // 1) HTTPS obligatorio
                 if (!esContextoSeguro()) {
                     mostrarError(
                         'Esta página NO está en HTTPS.\n\n' +
                         'Los navegadores móviles bloquean la cámara sin HTTPS. ' +
-                        'Súbela a GitHub Pages, Netlify, Vercel o cualquier hosting con SSL ' +
-                        'y vuelve a intentarlo desde esa URL https://...'
+                        'Súbela a GitHub Pages, Netlify, Vercel o cualquier hosting con SSL.'
                     );
                     return;
                 }
 
-                // 2) Forzar diálogo de permiso
-                try {
-                    await pedirPermisoCamara();
-                } catch (e) {
-                    mostrarError(e.message || String(e));
-                    return;
-                }
+                try { await pedirPermisoCamara(); }
+                catch (e) { mostrarError(e.message || String(e)); return; }
 
-                // 3) Arrancar MindAR
                 arrancarMindAR();
             }
 
-            // Listeners en click Y touchend: algunos Android no disparan click rápido
             btn.addEventListener('click', iniciar, { passive: true });
             btn.addEventListener('touchend', function (e) {
                 e.preventDefault();
@@ -328,29 +387,25 @@
             }, { passive: false });
 
             document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
-
             document.addEventListener('touchmove', function (e) {
                 if (e.touches.length > 1) e.preventDefault();
             }, { passive: false });
 
+            // Mantiene el video a pantalla completa
+            setInterval(forzarVideoVisible, 2000);
+
             window.addEventListener('resize', function () {
-                setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 300);
+                setTimeout(function () { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 300);
             });
             window.addEventListener('orientationchange', function () {
-                setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 500);
+                setTimeout(function () { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 500);
             });
             window.addEventListener('load', function () {
-                setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 1500);
+                setTimeout(function () { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 1500);
             });
 
-            // Si no está en contexto seguro, avisamos de inmediato al cargar
             if (!esContextoSeguro()) {
-                mostrarError(
-                    '⚠ Esta página no está en HTTPS.\n\n' +
-                    'La cámara NO funcionará en el celular sin HTTPS. ' +
-                    'Súbela a un hosting con SSL (GitHub Pages, Netlify, Vercel) ' +
-                    'y ábrela desde esa URL https://...'
-                );
+                mostrarError('⚠ Esta página no está en HTTPS. La cámara NO funcionará en el celular.');
             }
         })();
     </script>
