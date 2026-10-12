@@ -158,12 +158,11 @@
         AFRAME.registerComponent('cristal', {
             schema: { 
                 puntos: { type: 'int', default: 10 },
-                velocidad: { type: 'number', default: 0.3 } 
+                velocidad: { type: 'number', default: 0.2 } 
             },
             init: function () {
                 this.recogido = false;
                 
-                // Rotación constante a todo el bloque (hitbox + modelo)
                 this.el.setAttribute('animation__rot', {
                     property: 'rotation', to: '0 360 0',
                     dur: 3000, loop: true, easing: 'linear'
@@ -171,7 +170,6 @@
 
                 this.resetearPosicion();
 
-                // Escuchamos el click sintético generado por el raycaster
                 this.el.addEventListener('click', this.recoger.bind(this));
             },
             tick: function (time, timeDelta) {
@@ -188,13 +186,12 @@
             },
             resetearPosicion: function() {
                 const xAleatorio = (Math.random() - 0.5) * 1.5; 
-                // Colocamos en Z=0.3 para que floten más cerca de la cámara y no choquen con el marcador
-                const zAleatorio = 0.3 + (Math.random() * 0.2); 
+                const zAleatorio = 0.1 + (Math.random() * 0.2); 
                 const yInicio = 1.0 + Math.random() * 0.5;      
 
                 this.el.removeAttribute('animation__pop');
                 this.el.setAttribute('position', { x: xAleatorio, y: yInicio, z: zAleatorio });
-                this.el.setAttribute('scale', '1 1 1'); // La hitbox siempre vuelve a escala 1
+                this.el.setAttribute('scale', '1 1 1');
                 this.recogido = false;
             },
             recoger: function (evento) {
@@ -207,7 +204,6 @@
                 playDing();
                 vibrar(60);
                 
-                // Encogemos la hitbox a 0 para dar el efecto de que el objeto desaparece
                 this.el.setAttribute('animation__pop', {
                     property: 'scale', to: '0 0 0', dur: 150, easing: 'easeInBack'
                 });
@@ -320,38 +316,31 @@
         <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
         <a-light type="directional" color="#ffffff" position="1 1 1" intensity="1"></a-light>
 
-        <!-- Raycaster optimizado: interval=0 y far=20 para detectar toques precisos al instante -->
         <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false"
             cursor="fuse: false; rayOrigin: mouse"
-            raycaster="objects: .clickable; far: 20; interval: 0"></a-camera>
+            raycaster="objects: .clickable; far: 100; interval: 10"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
             
-            <!-- Cristal Azul -->
-            <!-- La entidad padre funciona como Hitbox (Caja de colisión). Opacidad 0.01 es indetectable al ojo pero sólida para el click -->
-            <a-entity class="clickable" cristal="puntos: 10; velocidad: 0.25" 
-                      geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.5" 
-                      material="color: #fff; opacity: 0.01; transparent: true; depthWrite: false">
-                <!-- Escala independiente para igualar tamaño visual -->
-                <a-entity gltf-model="#modelo1" scale="0.15 0.15 0.15" position="0 -0.1 0"></a-entity>
+            <!-- CRISTAL 1 (BLANCO) -->
+            <!-- Escalado x2 para que deje de ser microscópico -->
+            <a-entity cristal="puntos: 10; velocidad: 0.2">
+                <a-entity gltf-model="#modelo1" scale="2 2 2" position="0 -0.1 0"></a-entity>
+                <a-box class="clickable" scale="0.5 0.5 0.5" material="opacity: 0.01; transparent: true; depthWrite: false"></a-box>
             </a-entity>
             
-            <!-- Cristal Rojo -->
-            <!-- Hitbox -->
-            <a-entity class="clickable" cristal="puntos: 15; velocidad: 0.35" 
-                      geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.5" 
-                      material="color: #fff; opacity: 0.01; transparent: true; depthWrite: false">
-                <!-- Modelo Rojo: Escala ultra reducida a 0.008 para compensar su tamaño nativo -->
-                <a-entity gltf-model="#modelo2" scale="0.008 0.008 0.008" position="0 -0.1 0"></a-entity>
+            <!-- CRISTAL 2 (ROJO) -->
+            <!-- Escalado a 0.05 para compensar su tamaño gigante -->
+            <a-entity cristal="puntos: 15; velocidad: 0.25">
+                <a-entity gltf-model="#modelo2" scale="0.05 0.05 0.05" position="0 -0.1 0"></a-entity>
+                <a-box class="clickable" scale="0.5 0.5 0.5" material="opacity: 0.01; transparent: true; depthWrite: false"></a-box>
             </a-entity>
             
-            <!-- Cristal Verde -->
-            <!-- Hitbox -->
-            <a-entity class="clickable" cristal="puntos: 20; velocidad: 0.45" 
-                      geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.5" 
-                      material="color: #fff; opacity: 0.01; transparent: true; depthWrite: false">
-                <!-- Modelo Verde: Escala ultra reducida a 0.008 para compensar su tamaño nativo -->
-                <a-entity gltf-model="#modelo3" scale="0.008 0.008 0.008" position="0 -0.1 0"></a-entity>
+            <!-- CRISTAL 3 (VERDE) -->
+            <!-- Escalado a 0.5 para que luzca del mismo tamaño que el rojo -->
+            <a-entity cristal="puntos: 20; velocidad: 0.3">
+                <a-entity gltf-model="#modelo3" scale="0.5 0.5 0.5" position="0 -0.1 0"></a-entity>
+                <a-box class="clickable" scale="0.5 0.5 0.5" material="opacity: 0.01; transparent: true; depthWrite: false"></a-box>
             </a-entity>
                 
             <a-ring position="0 0 0" rotation="-90 0 0"
