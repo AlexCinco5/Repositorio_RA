@@ -2,13 +2,11 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- Etiquetas obligatorias para liberar los bloqueos gráficos en iOS -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Filtro RA - Máscara de Gas (Boca Reactiva)</title>
     
-    <!-- LA SOLUCIÓN: A-Frame 1.3.0 (La única versión 100% estable con MindAR en iOS) -->
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
 
@@ -80,12 +78,12 @@
     
     <div id="instruccion">Toca la pantalla y abre la boca</div>
 
-    <!-- Ajuste del renderer compatible con 1.3.0 -->
     <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" detector-gesto-boca>
         
-        <a-assets timeout="10000">
+        <a-assets timeout="15000">
+            <!-- REGLA DE ORO DE IOS: Todos los modelos deben ser locales -->
             <a-asset-item id="mascara-gas" src="mascara_gas.glb"></a-asset-item>
-            <a-asset-item id="cabeza-molde" src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/face-tracking/assets/sparkar/headOccluder.glb" crossorigin="anonymous"></a-asset-item>
+            <a-asset-item id="cabeza-molde" src="headOccluder.glb"></a-asset-item>
             
             <audio id="audio-gas" src="alerta.mp3" preload="auto" crossorigin="anonymous"></audio>
             <img id="textura-humo" src="humo.png" crossorigin="anonymous">
@@ -121,7 +119,6 @@
             }, 1500);
         });
 
-        // Evento obligatorio para liberar el sonido en Safari iOS
         window.addEventListener('touchstart', function() {
             const audioEl = document.getElementById('audio-gas');
             if(audioEl) { audioEl.load(); }
