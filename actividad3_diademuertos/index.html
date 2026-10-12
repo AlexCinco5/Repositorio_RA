@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Filtro RA - Día de Muertos</title>
+    <title>Actividad 3 - Mapeo Facial Catrina</title>
     
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
@@ -18,26 +18,30 @@
     </style>
 
     <script>
-        AFRAME.registerComponent('efecto-tematico', {
+        // Tu mismo script calibrado a 1.5
+        AFRAME.registerComponent('detector-gesto-boca', {
             init: function() {
                 this.labioSup = document.querySelector('#labio-sup');
                 this.labioInf = document.querySelector('#labio-inf');
-                this.efecto = document.querySelector('#efecto-particulas');
+                this.petalos = document.querySelector('#efecto-petalos');
                 this.activo = false;
             },
             tick: function() {
-                if (!this.labioSup || !this.labioInf || !this.efecto) return;
+                if (!this.labioSup || !this.labioInf) return;
                 
                 let posSup = new THREE.Vector3();
                 let posInf = new THREE.Vector3();
                 this.labioSup.object3D.getWorldPosition(posSup);
                 this.labioInf.object3D.getWorldPosition(posInf);
                 
-                if (posSup.distanceTo(posInf) > 1.5 && !this.activo) {
+                let distancia = posSup.distanceTo(posInf);
+                
+                if (distancia > 1.5 && !this.activo) {
                     this.activo = true;
-                    this.efecto.setAttribute('visible', 'true');
+                    this.petalos.setAttribute('visible', 'true');
+                    
                     setTimeout(() => {
-                        this.efecto.setAttribute('visible', 'false');
+                        this.petalos.setAttribute('visible', 'false');
                         this.activo = false;
                     }, 2000);
                 }
@@ -46,15 +50,14 @@
     </script>
 </head>
 <body style="margin: 0; overflow: hidden;">
-    <div id="instruccion">Abre la boca para el efecto</div>
+    
+    <div id="instruccion">Abre la boca para liberar cempasúchil</div>
 
-    <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" efecto-tematico>
+    <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" detector-gesto-boca>
         
-        <a-assets>
-            <!-- REGLA DE CELULAR: Agregar crossorigin="anonymous" a todas las imágenes -->
+        <a-assets timeout="10000">
             <img id="textura-catrina" src="mascara_catrina.png" crossorigin="anonymous">
-            <!-- Si tienes un archivo para el humo, pon su nombre exacto aquí abajo (ej. humo.png o petalos.png) -->
-            <img id="textura-efecto" src="petalos.png" crossorigin="anonymous">
+            <img id="textura-petalos" src="petalos.png" crossorigin="anonymous">
         </a-assets>
 
         <a-camera active="false" position="0 0 0"></a-camera>
@@ -62,13 +65,23 @@
         <a-entity id="labio-sup" mindar-face-target="anchorIndex: 13"></a-entity>
         <a-entity id="labio-inf" mindar-face-target="anchorIndex: 14"></a-entity>
 
-        <!-- Anclaje 2D a la nariz calibrado -->
+        <!-- Malla facial adaptada a la rúbrica -->
+        <a-entity mindar-face-target="anchorIndex: 1">
+            <a-entity mindar-face-default-face-model material="src: #textura-catrina; transparent: true; alphaTest: 0.5; shader: flat;"></a-entity>
+        </a-entity>
+
         <a-entity mindar-face-target="anchorIndex: 168">
-            <a-image src="#textura-catrina" position="0 -0.05 0.05" width="0.75" height="1.0" material="transparent: true; alphaTest: 0.1;"></a-image>
-            
-            <a-image id="efecto-particulas" src="#textura-efecto" position="0 -0.5 0.3" scale="1.2 1.2 1.2" visible="false" material="transparent: true; alphaTest: 0.1;"></a-image>
+            <a-image id="efecto-petalos" src="#textura-petalos" position="0 -0.5 0.3" scale="1.5 1.5 1.5" visible="false"></a-image>
         </a-entity>
         
     </a-scene>
+
+    <script>
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                window.dispatchEvent(new Event('resize'));
+            }, 1500);
+        });
+    </script>
 </body>
 </html>
