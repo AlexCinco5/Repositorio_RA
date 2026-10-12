@@ -102,15 +102,27 @@
             background: #22d3ee; color: #0f172a; cursor: pointer;
         }
 
-        #instruccion {
-            position: fixed; bottom: 30px; left: 50%;
-            transform: translateX(-50%); z-index: 100;
-            background: rgba(15, 23, 42, 0.85); color: #22d3ee;
-            padding: 10px 22px; border-radius: 40px;
-            font-size: 14px; font-weight: 600;
-            border: 1px solid rgba(34, 211, 238, 0.4);
-            pointer-events: none;
+        /* --- NUEVO: ESTILOS PARA LA MIRA Y EL BOTÓN DE ATRAPAR --- */
+        #crosshair {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 30px; height: 30px; z-index: 100; pointer-events: none; display: none;
         }
+        #crosshair::before, #crosshair::after {
+            content: ''; position: absolute; background: #22d3ee;
+            box-shadow: 0 0 4px #000;
+        }
+        #crosshair::before { top: 14px; left: 0; width: 30px; height: 2px; }
+        #crosshair::after { top: 0; left: 14px; width: 2px; height: 30px; }
+
+        #btn-atrapar {
+            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+            padding: 20px 50px; font-size: 20px; font-weight: 800;
+            border-radius: 50px; background: #22d3ee; color: #0f172a;
+            border: 4px solid #fff; z-index: 100; display: none;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.5); cursor: pointer;
+            touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+        }
+        #btn-atrapar:active { background: #fbbf24; transform: translateX(-50%) scale(0.92); }
     </style>
 
     <script>
@@ -169,16 +181,12 @@
                 });
 
                 this.resetearPosicion();
-
-                // El raycaster de A-Frame emitirá este evento "click" nativamente
-                this.el.addEventListener('click', this.recoger.bind(this));
+                // Ya no necesitamos listeners de click aquí, lo maneja el botón central
             },
             tick: function (time, timeDelta) {
                 if (!EstadoJuego.activo || this.recogido) return;
 
-                // Evitamos grandes saltos si hay un bajón de frames
-                const dt = Math.min(timeDelta, 50);
-
+                const dt = Math.min(timeDelta, 50); // Evitar saltos bruscos
                 const pos = this.el.getAttribute('position');
                 pos.y -= (this.data.velocidad * (dt / 1000));
 
@@ -190,7 +198,7 @@
             },
             resetearPosicion: function() {
                 const xAleatorio = (Math.random() - 0.5) * 1.5; 
-                const zAleatorio = 0.1 + (Math.random() * 0.2); 
+                const zAleatorio = 0.1 + (Math.random() * 0.3); // Aparecen ligeramente delante del marcador
                 const yInicio = 1.0 + Math.random() * 0.5;      
 
                 this.el.removeAttribute('animation__pop');
@@ -198,6 +206,7 @@
                 this.el.setAttribute('scale', '1 1 1');
                 this.recogido = false;
             },
+            // Esta función ahora será llamada manualmente desde el botón
             recoger: function () {
                 if (!EstadoJuego.activo || this.recogido) return;
                 
@@ -239,13 +248,53 @@
             }
         });
 
+        // LÓGICA DEL BOTÓN DE DISPARO
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnAtrapar = document.getElementById('btn-atrapar');
+            
+            function intentarAtrapar(e) {
+                if (e) e.preventDefault(); // Evitar el doble tap/zoom en móviles
+                if (!EstadoJuego.activo) return;
+
+                // Obtenemos el raycaster de la cámara (el láser)
+                const raycasterEl = document.getElementById('mi-raycaster');
+                const raycaster = raycasterEl.components.raycaster;
+                
+                // Vemos qué cajas invisibles están tocando el láser central
+                const intersecciones = raycaster.intersectedEls;
+
+                if (intersecciones.length > 0) {
+                    // Recorremos los elementos tocados
+                    for (let i = 0; i < intersecciones.length; i++) {
+                        const cajaInvisible = intersecciones[i];
+                        const padre = cajaInvisible.parentNode; // El padre es la entidad con el componente 'cristal'
+                        
+                        if (padre && padre.components.cristal && !padre.components.cristal.recogido) {
+                            padre.components.cristal.recoger();
+                            break; // Rompemos el ciclo para atrapar solo 1 a la vez
+                        }
+                    }
+                }
+            }
+
+            // Escuchamos el botón
+            btnAtrapar.addEventListener('touchstart', intentarAtrapar, { passive: false });
+            btnAtrapar.addEventListener('mousedown', intentarAtrapar);
+        });
+
         function iniciarJuego() {
             EstadoJuego.puntos = 0;
             EstadoJuego.tiempoRestante = 30;
             EstadoJuego.activo = true;
             document.getElementById('puntuacion').innerText = '0';
             document.getElementById('tiempo').innerText = '30';
+            
             document.getElementById('gameover').classList.remove('visible');
+            
+            // Mostrar la mira y el botón
+            document.getElementById('crosshair').style.display = 'block';
+            document.getElementById('btn-atrapar').style.display = 'block';
+
             if (EstadoJuego.intervalo) clearInterval(EstadoJuego.intervalo);
             EstadoJuego.intervalo = setInterval(() => {
                 EstadoJuego.tiempoRestante--;
@@ -256,6 +305,11 @@
 
         function terminarJuego() {
             EstadoJuego.activo = false;
+            
+            // Ocultar la mira y el botón
+            document.getElementById('crosshair').style.display = 'none';
+            document.getElementById('btn-atrapar').style.display = 'none';
+
             if (EstadoJuego.intervalo) { clearInterval(EstadoJuego.intervalo); EstadoJuego.intervalo = null; }
             playGameOver();
             vibrar([100, 50, 100, 50, 200]);
@@ -280,13 +334,12 @@
 
     <div id="overlay-inicio">
         <h1>💎 ATRAPA LOS CRISTALES</h1>
-        <p>Apunta la cámara al marcador y recolecta los cristales antes de que se acabe el tiempo.</p>
+        <p>Apunta la cámara al marcador, centra los cristales en la mira y presiona atrapar.</p>
         <div class="reglas">
             🎯 <strong>Objetivo:</strong> consigue la mayor cantidad de puntos.<br>
-            👆 <strong>Cómo jugar:</strong> toca los cristales flotantes.<br>
+            ➕ <strong>Mecánica:</strong> Centra la cruz y usa el botón.<br>
             💎 <strong>Puntos:</strong> +10 por cristal.<br>
             ⏱ <strong>Duración:</strong> 30 segundos.<br>
-            🏆 <strong>Fin:</strong> cuando el tiempo llegue a 0.
         </div>
         <button id="btn-iniciar" type="button">INICIAR JUEGO</button>
         <div id="estado"></div>
@@ -300,7 +353,9 @@
         <button id="btn-reiniciar" type="button" onclick="reiniciarJuego()">JUGAR DE NUEVO</button>
     </div>
 
-    <div id="instruccion">👆 Toca los cristales</div>
+    <!-- MIRA CENTRAL Y BOTON -->
+    <div id="crosshair"></div>
+    <button id="btn-atrapar">ATRAPAR</button>
 
     <a-scene
         mindar-image="imageTargetSrc: ./marcador.mind; autoStart: false; uiLoading: no; uiError: no; uiScanning: no"
@@ -320,35 +375,30 @@
         <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
         <a-light type="directional" color="#ffffff" position="1 1 1" intensity="1"></a-light>
 
-        <!-- Raycaster optimizado -->
-        <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false"
-            cursor="fuse: false; rayOrigin: mouse"
-            raycaster="objects: .clickable; far: 20"></a-camera>
+        <!-- CÁMARA CON RAYCASTER CENTRAL INVISIBLE (El láser) -->
+        <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false">
+            <a-entity id="mi-raycaster" raycaster="objects: .clickable; far: 20; interval: 50" position="0 0 0" rotation="0 0 0"></a-entity>
+        </a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
             
             <!-- CRISTAL 1 (BLANCO) -->
-            <a-entity class="clickable" cristal="puntos: 10; velocidad: 0.2"
-                      geometry="primitive: box; width: 0.8; height: 0.8; depth: 0.8"
-                      material="color: #ffffff; opacity: 0.01; transparent: true; depthWrite: false">
-                <!-- Modelo Visual -->
+            <a-entity cristal="puntos: 10; velocidad: 0.2">
                 <a-entity gltf-model="#modelo1" scale="2 2 2" position="0 -0.1 0"></a-entity>
+                <!-- Hitbox Invisible -->
+                <a-box class="clickable" scale="0.8 0.8 0.8" material="opacity: 0.01; transparent: true; depthWrite: false"></a-box>
             </a-entity>
             
             <!-- CRISTAL 2 (ROJO) -->
-            <a-entity class="clickable" cristal="puntos: 15; velocidad: 0.25"
-                      geometry="primitive: box; width: 0.8; height: 0.8; depth: 0.8"
-                      material="color: #ffffff; opacity: 0.01; transparent: true; depthWrite: false">
-                <!-- Modelo Visual -->
+            <a-entity cristal="puntos: 15; velocidad: 0.25">
                 <a-entity gltf-model="#modelo2" scale="0.05 0.05 0.05" position="0 -0.1 0"></a-entity>
+                <a-box class="clickable" scale="0.8 0.8 0.8" material="opacity: 0.01; transparent: true; depthWrite: false"></a-box>
             </a-entity>
             
             <!-- CRISTAL 3 (VERDE) -->
-            <a-entity class="clickable" cristal="puntos: 20; velocidad: 0.3"
-                      geometry="primitive: box; width: 0.8; height: 0.8; depth: 0.8"
-                      material="color: #ffffff; opacity: 0.01; transparent: true; depthWrite: false">
-                <!-- Modelo Visual -->
+            <a-entity cristal="puntos: 20; velocidad: 0.3">
                 <a-entity gltf-model="#modelo3" scale="0.5 0.5 0.5" position="0 -0.1 0"></a-entity>
+                <a-box class="clickable" scale="0.8 0.8 0.8" material="opacity: 0.01; transparent: true; depthWrite: false"></a-box>
             </a-entity>
                 
             <a-ring position="0 0 0" rotation="-90 0 0"
