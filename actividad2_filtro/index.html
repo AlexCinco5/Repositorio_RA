@@ -3,12 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Filtro RA - Máscara de Gas (Ajuste Final)</title>
+    <title>Filtro RA - Máscara de Gas (Boca Reactiva)</title>
     
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
 
-    <!-- Componente para hacer invisible el molde de la cabeza pero mantener la oclusión -->
+    <style>
+        #instruccion {
+            position: absolute;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            color: #4ade80;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-family: sans-serif;
+            font-weight: bold;
+            font-size: 16px;
+            text-align: center;
+            pointer-events: none;
+        }
+    </style>
+
     <script>
         AFRAME.registerComponent('oclusor-invisible', {
             init: function () {
@@ -17,7 +36,6 @@
                     if (obj) {
                         obj.traverse((node) => {
                             if (node.isMesh && node.material) {
-                                // Apaga la renderización de color del molde
                                 node.material.colorWrite = false;
                             }
                         });
@@ -25,41 +43,86 @@
                 });
             }
         });
+
+        AFRAME.registerComponent('detector-gesto-boca', {
+            init: function() {
+                this.labioSup = document.querySelector('#labio-sup');
+                this.labioInf = document.querySelector('#labio-inf');
+                this.humoIzq = document.querySelector('#humo-izquierdo');
+                this.humoDer = document.querySelector('#humo-derecho');
+                this.sonido = document.querySelector('#alerta-gas');
+                this.activo = false;
+            },
+            tick: function() {
+                if (!this.labioSup || !this.labioInf) return;
+                
+                let posSup = new THREE.Vector3();
+                let posInf = new THREE.Vector3();
+                this.labioSup.object3D.getWorldPosition(posSup);
+                this.labioInf.object3D.getWorldPosition(posInf);
+                
+                let distancia = posSup.distanceTo(posInf);
+                
+                // UMBRAL CALIBRADO A 1.5
+                if (distancia > 1.5 && !this.activo) {
+                    this.activo = true;
+                    
+                    this.humoIzq.setAttribute('visible', 'true');
+                    this.humoDer.setAttribute('visible', 'true');
+                    
+                    if (this.sonido && this.sonido.components.sound) {
+                        this.sonido.components.sound.playSound();
+                    }
+                    
+                    setTimeout(() => {
+                        this.humoIzq.setAttribute('visible', 'false');
+                        this.humoDer.setAttribute('visible', 'false');
+                        this.activo = false;
+                    }, 2000);
+                }
+            }
+        });
     </script>
 </head>
 <body style="margin: 0; overflow: hidden;">
     
-    <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+    <div id="instruccion">Abre la boca para liberar el humo</div>
+
+    <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" detector-gesto-boca>
         
         <a-assets>
-            <!-- Asegúrate de que tu archivo se llame exactamente así -->
             <a-asset-item id="mascara-gas" src="mascara_gas.glb"></a-asset-item>
             <a-asset-item id="cabeza-molde" src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/face-tracking/assets/sparkar/headOccluder.glb"></a-asset-item>
+            
+            <audio id="audio-gas" src="alerta.mp3" preload="auto"></audio>
+            <img id="textura-humo" src="humo.png">
         </a-assets>
 
         <a-camera active="false" position="0 0 0"></a-camera>
 
-        <!-- Anclaje facial en el puente de la nariz (168) -->
+        <a-entity id="labio-sup" mindar-face-target="anchorIndex: 13"></a-entity>
+        <a-entity id="labio-inf" mindar-face-target="anchorIndex: 14"></a-entity>
+
         <a-entity mindar-face-target="anchorIndex: 168">
             
-            <!-- 1. CABEZA DE REFERENCIA (Oculta, pero bloquea la parte trasera de la máscara) -->
-            <a-entity gltf-model="#cabeza-molde" oclusor-invisible scale="0.065 0.065 0.065"></a-entity>
+            <a-entity gltf-model="#cabeza-molde" oclusor-invisible scale="0.075 0.075 0.075"></a-entity>
             
-            <!-- 2. MÁSCARA DE GAS CALIBRADA -->
-            <!-- Si necesitas afinarlo: 
-                 - position: Modifica -0.6 para subirla o bajarla. Modifica 0.1 para sacarla o hundirla.
-                 - scale: Aumenta o disminuye los 3 valores (1.6) al mismo tiempo para el tamaño general. -->
             <a-entity 
                 gltf-model="#mascara-gas" 
                 rotation="0 180 0" 
-                position="0 -0.6 0.1" 
-                scale="1.6 1.6 1.6">
+                position="0 -0.25 0.05" 
+                scale="1.6 1.6 1.6"
+                animation-mixer>
             </a-entity>
+
+            <a-image id="humo-izquierdo" src="#textura-humo" position="-0.7 -0.45 0.7" rotation="0 0 20" scale="0.4 0.4 0.4" visible="false"></a-image>
+            <a-image id="humo-derecho" src="#textura-humo" position="0.7 -0.45 0.7" rotation="0 0 -20" scale="0.4 0.4 0.4" visible="false"></a-image>
+
+            <a-entity id="alerta-gas" sound="src: #audio-gas; volume: 1; poolSize: 2"></a-entity>
             
         </a-entity>
     </a-scene>
 
-    <!-- Script para solucionar el bug de pantalla congelada (Evita tener que presionar F12) -->
     <script>
         window.addEventListener('load', function() {
             setTimeout(function() {
