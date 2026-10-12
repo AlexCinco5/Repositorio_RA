@@ -51,7 +51,7 @@
             border-radius: 40px; border: 1px solid rgba(34, 211, 238, 0.4);
         }
         #puntuacion { color: #22d3ee; }
-        #tiempo { color: #fbbf24; transition: color 0.2s ease; }
+        #tiempo { color: #fbbf24; transition: color 0.2s ease, transform 0.15s ease; }
 
         #overlay-inicio {
             position: fixed; inset: 0; z-index: 9999;
@@ -111,6 +111,15 @@
             border: 1px solid rgba(34, 211, 238, 0.4);
             pointer-events: none;
         }
+
+        /* Flash rojo cuando se pierde un cristal */
+        #flash-danio {
+            position: fixed; inset: 0; z-index: 200;
+            background: radial-gradient(circle, rgba(239,68,68,0) 40%, rgba(239,68,68,0.55) 100%);
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.15s ease;
+        }
+        #flash-danio.visible { opacity: 1; }
     </style>
 
     <script>
@@ -151,6 +160,20 @@
                 osc.start(now + i * 0.08); osc.stop(now + i * 0.08 + 0.25);
             });
         }
+        // Sonido grave de "perdido"
+        function playPerdido() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.exponentialRampToValueAtTime(90, now + 0.25);
+            gain.gain.setValueAtTime(0.22, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            osc.connect(gain).connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.3);
+        }
         function playGameOver() {
             if (!audioCtx) return;
             const now = audioCtx.currentTime;
@@ -173,7 +196,7 @@
             schema: { 
                 puntos: { type: 'int', default: 10 },
                 velocidad: { type: 'number', default: 0.2 },
-                sumaTiempo: { type: 'int', default: 0 }   // ← NUEVO: segundos que suma al tocarlo
+                sumaTiempo: { type: 'int', default: 0 }   // segundos que suma al tocarlo
             },
             init: function () {
                 this.recogido = false;
@@ -195,13 +218,14 @@
                 const dt = Math.min(timeDelta, 50);
                 const pos = this.el.getAttribute('position');
 
-                // Multiplicador progresivo: x1 al inicio, +1 por cada 250 pts, tope x3
-                const multiplicador = 1 + Math.min(EstadoJuego.puntos / 250, 2);
+                // Multiplicador progresivo con 4 niveles: x1, x2, x3, x4
+                // 0 pts → x1  |  250 pts → x2  |  500 pts → x3  |  750+ pts → x4
+                const multiplicador = 1 + Math.min(EstadoJuego.puntos / 250, 3);
 
                 pos.y -= (this.data.velocidad * multiplicador * (dt / 1000));
 
                 if (pos.y < -0.8) {
-                    this.resetearPosicion();
+                    this.escapar();
                 } else {
                     this.el.setAttribute('position', pos);
                 }
@@ -215,6 +239,38 @@
                 this.el.setAttribute('position', { x: xAleatorio, y: yInicio, z: zAleatorio });
                 this.el.setAttribute('scale', '1 1 1');
                 this.recogido = false;
+            },
+            // Penalización: el cristal se escapó
+            escapar: function () {
+                if (!EstadoJuego.activo) return;
+                if (this.recogido) return;
+
+                EstadoJuego.tiempoRestante -= 1;
+                const elTiempo = document.getElementById('tiempo');
+                elTiempo.innerText = Math.max(0, EstadoJuego.tiempoRestante);
+                elTiempo.style.color = '#ef4444';
+                elTiempo.style.transform = 'scale(1.15)';
+                setTimeout(() => {
+                    elTiempo.style.color = '#fbbf24';
+                    elTiempo.style.transform = 'scale(1)';
+                }, 350);
+
+                const flash = document.getElementById('flash-danio');
+                if (flash) {
+                    flash.classList.add('visible');
+                    setTimeout(() => flash.classList.remove('visible'), 150);
+                }
+
+                playPerdido();
+                vibrar(100);
+
+                // Si la penalización dejó el tiempo en 0, se termina de inmediato
+                if (EstadoJuego.tiempoRestante <= 0) {
+                    terminarJuego();
+                    return;
+                }
+
+                this.resetearPosicion();
             },
             recoger: function (evento) {
                 if (!EstadoJuego.activo || this.recogido) return;
@@ -231,7 +287,11 @@
                     const elTiempo = document.getElementById('tiempo');
                     elTiempo.innerText = EstadoJuego.tiempoRestante;
                     elTiempo.style.color = '#4ade80';
-                    setTimeout(() => { elTiempo.style.color = '#fbbf24'; }, 400);
+                    elTiempo.style.transform = 'scale(1.15)';
+                    setTimeout(() => {
+                        elTiempo.style.color = '#fbbf24';
+                        elTiempo.style.transform = 'scale(1)';
+                    }, 400);
                     playBonus();
                     vibrar([40, 30, 80]);
                 } else {
@@ -276,17 +336,23 @@
             EstadoJuego.tiempoRestante = 30;
             EstadoJuego.activo = true;
             document.getElementById('puntuacion').innerText = '0';
-            document.getElementById('tiempo').innerText = '30';
+            const elTiempo = document.getElementById('tiempo');
+            elTiempo.innerText = '30';
+            elTiempo.style.color = '#fbbf24';
+            elTiempo.style.transform = 'scale(1)';
             document.getElementById('gameover').classList.remove('visible');
             if (EstadoJuego.intervalo) clearInterval(EstadoJuego.intervalo);
             EstadoJuego.intervalo = setInterval(() => {
+                if (!EstadoJuego.activo) return;
                 EstadoJuego.tiempoRestante--;
+                if (EstadoJuego.tiempoRestante < 0) EstadoJuego.tiempoRestante = 0;
                 document.getElementById('tiempo').innerText = EstadoJuego.tiempoRestante;
                 if (EstadoJuego.tiempoRestante <= 0) terminarJuego();
             }, 1000);
         }
 
         function terminarJuego() {
+            if (!EstadoJuego.activo && EstadoJuego.tiempoRestante > 0) return;
             EstadoJuego.activo = false;
             if (EstadoJuego.intervalo) { clearInterval(EstadoJuego.intervalo); EstadoJuego.intervalo = null; }
             playGameOver();
@@ -310,6 +376,8 @@
         <div class="pill">⏱ Tiempo: <span id="tiempo">30</span>s</div>
     </div>
 
+    <div id="flash-danio"></div>
+
     <div id="overlay-inicio">
         <h1>💎 ATRAPA LOS CRISTALES</h1>
         <p>Apunta la cámara al marcador y recolecta los cristales antes de que se acabe el tiempo.</p>
@@ -319,7 +387,8 @@
             💎 <strong>Blanco:</strong> +10 puntos.<br>
             🔴 <strong>Rojo:</strong> +15 puntos.<br>
             🟢 <strong>Verde:</strong> +20 puntos y <strong>+3 segundos</strong>.<br>
-            ⚡ <strong>Dificultad:</strong> la velocidad aumenta con tus puntos.<br>
+            ⚠️ <strong>¡Cuidado!</strong> Si un cristal cae al vacío, <strong>pierdes 1 segundo</strong>.<br>
+            ⚡ <strong>Dificultad:</strong> la velocidad sube por 4 niveles según tus puntos.<br>
             ⏱ <strong>Duración:</strong> 30 segundos.<br>
             🏆 <strong>Fin:</strong> cuando el tiempo llegue a 0.
         </div>
