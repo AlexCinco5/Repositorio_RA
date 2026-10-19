@@ -83,17 +83,15 @@ Dado que las experiencias de WebAR requieren acceso a la cámara y sensores del 
 
 ## Capturas de Pantalla
 
-*(Reemplaza las rutas con capturas reales de tu proyecto funcionando en el teléfono)*
+| Actividad 1 | Actividad 2 |
+| :---: | :---: |
+| ![Captura Actividad 1](./capturas/act1.jpg) | ![Captura Actividad 2](./capturas/act2.jpg) |
+| **Atrapa los Cristales** | **Filtro Reactivo** |
 
-| 
-
-| **Actividad 1** | **Actividad 2** | 
-|  |  | 
-| **Atrapa los Cristales** | **Filtro Reactivo** | 
-
-| **Actividad 3** | **Actividad 4** | 
-|  |  | 
-| **Máscara Día de Muertos** | **Supervivencia AR** | 
+| Actividad 3 | Actividad 4 |
+| :---: | :---: |
+| ![Captura Actividad 3](./capturas/act3.jpg) | ![Captura Actividad 4](./capturas/act4.jpg) |
+| **Máscara Día de Muertos** | **Supervivencia AR** |
 
 ## Herramientas y Tecnologías
 
