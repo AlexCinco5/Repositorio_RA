@@ -1,18 +1,20 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     >
 
-    <title>Actividad 4 - Supervivencia AR</title>
+    <title>Actividad 4 - Zombie AR</title>
 
-    <!-- A-Frame -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
     <style>
+
         * {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
@@ -33,21 +35,15 @@
             touch-action: manipulation;
         }
 
-        /* =========================================================
-           CAPA GENERAL DE INTERFAZ
-        ========================================================= */
+        /* =====================================================
+           UI
+        ===================================================== */
 
-        #ui-capa {
+        #ui {
             position: fixed;
             inset: 0;
-            width: 100%;
-            height: 100%;
             z-index: 1000;
             pointer-events: none;
-        }
-
-        button {
-            font-family: inherit;
         }
 
         .pantalla {
@@ -60,16 +56,16 @@
             justify-content: center;
             align-items: center;
 
-            padding: 24px;
+            padding: 22px;
 
             color: white;
             text-align: center;
 
             background:
                 radial-gradient(
-                    circle at center,
-                    rgba(30, 40, 30, 0.82),
-                    rgba(0, 0, 0, 0.96)
+                    circle,
+                    rgba(20,30,25,.92),
+                    rgba(0,0,0,.98)
                 );
 
             pointer-events: auto;
@@ -79,153 +75,176 @@
             display: flex;
         }
 
-        /* =========================================================
-           MENÚ
-        ========================================================= */
+        /* =====================================================
+           MENU
+        ===================================================== */
 
-        #menu-principal {
-            justify-content: center;
+        #menu {
+            overflow-y: auto;
         }
 
-        .logo {
-            font-size: clamp(42px, 11vw, 80px);
-            font-weight: 900;
-            letter-spacing: 4px;
+        .titulo {
             margin: 0;
 
-            color: #e5e7eb;
+            font-size: clamp(42px, 12vw, 76px);
+            font-weight: 900;
+            letter-spacing: 4px;
 
             text-shadow:
-                0 0 10px rgba(255, 255, 255, 0.15),
-                0 5px 20px rgba(0, 0, 0, 0.9);
+                0 5px 20px #000,
+                0 0 15px rgba(255,255,255,.15);
         }
 
         .subtitulo {
-            margin: 8px 0 30px;
-            color: #9ca3af;
-            font-size: 16px;
-            max-width: 500px;
+            max-width: 480px;
+
+            margin: 10px 0 25px;
+
+            color: #cbd5e1;
+
+            line-height: 1.5;
         }
 
-        .menu-card {
-            width: min(92vw, 480px);
+        .card {
+            width: min(92vw, 470px);
 
             padding: 24px;
 
             border-radius: 22px;
 
-            background: rgba(15, 23, 42, 0.86);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15,23,42,.92);
+
+            border: 1px solid rgba(255,255,255,.12);
 
             box-shadow:
-                0 20px 60px rgba(0, 0, 0, 0.6),
-                inset 0 1px rgba(255, 255, 255, 0.05);
+                0 20px 60px rgba(0,0,0,.7);
 
             backdrop-filter: blur(12px);
         }
 
-        .menu-card h2 {
+        .card h2 {
             margin-top: 0;
-            margin-bottom: 18px;
         }
 
-        .modo-btn {
+        .modo {
             width: 100%;
 
             margin: 8px 0;
+
             padding: 18px;
 
-            border: none;
+            border: 0;
             border-radius: 16px;
 
             color: white;
+
             font-size: 18px;
-            font-weight: 800;
+            font-weight: 900;
 
             cursor: pointer;
-
-            transition:
-                transform 0.15s,
-                filter 0.15s;
         }
 
-        .modo-btn:active {
-            transform: scale(0.97);
-            filter: brightness(0.85);
+        .modo:active {
+            transform: scale(.97);
         }
 
-        .modo-niveles {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        .niveles {
+            background: linear-gradient(
+                135deg,
+                #2563eb,
+                #1d4ed8
+            );
         }
 
-        .modo-supervivencia {
-            background: linear-gradient(135deg, #dc2626, #991b1b);
+        .supervivencia {
+            background: linear-gradient(
+                135deg,
+                #dc2626,
+                #991b1b
+            );
         }
 
-        .descripcion-modo {
+        .descripcion {
             display: block;
+
             margin-top: 6px;
 
             font-size: 12px;
             font-weight: normal;
 
-            opacity: 0.8;
+            opacity: .8;
         }
 
-        /* =========================================================
-           PANTALLA DE MAPEO
-        ========================================================= */
+        /* =====================================================
+           MAPEO
+        ===================================================== */
 
         #pantalla-mapeo {
             justify-content: flex-end;
-            padding-bottom: 35px;
+
+            padding-bottom: 30px;
 
             background: transparent;
 
             pointer-events: none;
         }
 
-        .mapeo-panel {
+        .panel-mapeo {
             width: min(94vw, 500px);
 
-            padding: 18px;
+            padding: 20px;
 
-            border-radius: 20px;
+            border-radius: 22px;
 
-            background: rgba(0, 0, 0, 0.72);
+            background: rgba(0,0,0,.78);
 
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255,255,255,.18);
 
-            backdrop-filter: blur(12px);
+            box-shadow:
+                0 15px 40px rgba(0,0,0,.6);
+
+            backdrop-filter: blur(10px);
 
             pointer-events: auto;
         }
 
-        .mapeo-titulo {
-            margin: 0 0 8px;
-
-            font-size: 23px;
-            font-weight: 900;
+        .panel-mapeo h2 {
+            margin: 0 0 10px;
         }
 
-        .mapeo-texto {
-            margin: 0 0 15px;
+        .pasos {
+            text-align: left;
+
+            margin: 15px 0;
+
+            padding-left: 20px;
 
             color: #d1d5db;
 
             font-size: 14px;
-            line-height: 1.4;
+
+            line-height: 1.6;
         }
 
         #estado-mapeo {
-            margin-bottom: 12px;
+            margin: 12px 0;
 
             color: #facc15;
 
-            font-weight: 800;
+            font-weight: 900;
         }
 
-        .boton-principal {
+        #mensaje-error {
+            margin-top: 10px;
+
+            color: #fca5a5;
+
+            font-size: 12px;
+
+            line-height: 1.5;
+        }
+
+        .btn {
             width: 100%;
 
             padding: 17px;
@@ -234,6 +253,7 @@
             border-radius: 15px;
 
             background: #22c55e;
+
             color: white;
 
             font-size: 18px;
@@ -242,39 +262,32 @@
             cursor: pointer;
         }
 
-        .boton-principal:active {
-            transform: scale(0.97);
+        .btn:active {
+            transform: scale(.97);
         }
 
-        .boton-secundario {
-            width: 100%;
-
+        .btn-secundario {
             margin-top: 10px;
-            padding: 13px;
 
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 14px;
+            background: rgba(255,255,255,.1);
 
-            background: rgba(255, 255, 255, 0.08);
-            color: white;
-
-            font-weight: 700;
+            border: 1px solid rgba(255,255,255,.2);
         }
 
-        /* =========================================================
-           RETÍCULO DE MAPEO
-        ========================================================= */
+        /* =====================================================
+           RETICULO
+        ===================================================== */
 
-        #reticulo-mapeo {
-            position: absolute;
-
-            width: 70px;
-            height: 70px;
+        #reticulo {
+            position: fixed;
 
             left: 50%;
             top: 50%;
 
-            transform: translate(-50%, -50%);
+            width: 76px;
+            height: 76px;
+
+            transform: translate(-50%,-50%);
 
             display: none;
 
@@ -283,18 +296,13 @@
             border-radius: 50%;
 
             box-shadow:
-                0 0 10px rgba(34, 197, 94, 0.8),
-                inset 0 0 15px rgba(34, 197, 94, 0.2);
+                0 0 15px rgba(34,197,94,.8);
 
             pointer-events: none;
         }
 
-        #reticulo-mapeo.visible {
-            display: block;
-        }
-
-        #reticulo-mapeo::before,
-        #reticulo-mapeo::after {
+        #reticulo::before,
+        #reticulo::after {
             content: "";
 
             position: absolute;
@@ -302,54 +310,54 @@
             background: #22c55e;
         }
 
-        #reticulo-mapeo::before {
-            width: 90px;
+        #reticulo::before {
+            width: 96px;
             height: 2px;
 
             left: -13px;
-            top: 31px;
+            top: 35px;
         }
 
-        #reticulo-mapeo::after {
-            height: 90px;
+        #reticulo::after {
             width: 2px;
+            height: 96px;
 
+            left: 35px;
             top: -13px;
-            left: 31px;
         }
 
-        /* =========================================================
+        /* =====================================================
            HUD
-        ========================================================= */
+        ===================================================== */
 
         #hud {
-            position: absolute;
+            position: fixed;
 
-            top: env(safe-area-inset-top, 10px);
+            top: 10px;
             left: 0;
             right: 0;
 
             display: none;
 
             justify-content: space-between;
-            align-items: flex-start;
 
-            padding: 14px;
+            padding: 12px;
 
             pointer-events: none;
         }
 
         .hud-box {
-            padding: 9px 13px;
+            padding: 9px 12px;
 
             border-radius: 13px;
 
-            background: rgba(0, 0, 0, 0.65);
+            background: rgba(0,0,0,.68);
 
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255,255,255,.15);
 
             color: white;
 
+            font-size: 15px;
             font-weight: 900;
 
             text-shadow: 1px 2px 3px black;
@@ -357,55 +365,57 @@
             backdrop-filter: blur(5px);
         }
 
-        .puntos {
-            color: #60a5fa;
-        }
-
-        .vidas {
-            color: #f87171;
-        }
-
-        .nivel {
-            color: #facc15;
-        }
-
         #hud-centro {
             position: absolute;
 
             left: 50%;
+
             transform: translateX(-50%);
 
             display: flex;
             flex-direction: column;
 
             align-items: center;
-            gap: 5px;
+
+            gap: 4px;
         }
 
-        #arma-hud {
+        #puntos {
+            color: #60a5fa;
+        }
+
+        #vidas {
+            color: #f87171;
+        }
+
+        #nivel {
+            color: #facc15;
+        }
+
+        #arma {
             color: #fb923c;
         }
 
-        #booster-hud {
-            color: #a78bfa;
-            font-size: 13px;
+        #booster {
+            color: #c084fc;
+
+            font-size: 11px;
         }
 
-        /* =========================================================
-           BOTONES DE JUEGO
-        ========================================================= */
+        /* =====================================================
+           CONTROLES
+        ===================================================== */
 
-        #controles-juego {
-            position: absolute;
+        #controles {
+            position: fixed;
 
             left: 0;
             right: 0;
-            bottom: env(safe-area-inset-bottom, 20px);
+            bottom: 20px;
 
             display: none;
 
             justify-content: center;
-            align-items: center;
 
             pointer-events: none;
         }
@@ -416,14 +426,14 @@
 
             border-radius: 50%;
 
-            border: 5px solid rgba(255, 255, 255, 0.75);
+            border: 5px solid white;
 
             background:
                 radial-gradient(
                     circle,
-                    #fb923c 0%,
+                    #fb923c,
                     #ea580c 60%,
-                    #9a3412 100%
+                    #9a3412
                 );
 
             color: white;
@@ -432,26 +442,25 @@
             font-weight: 900;
 
             box-shadow:
-                0 8px 25px rgba(0, 0, 0, 0.55),
-                0 0 25px rgba(249, 115, 22, 0.35);
+                0 10px 30px rgba(0,0,0,.6);
 
             pointer-events: auto;
         }
 
         #btn-disparar:active {
-            transform: scale(0.9);
+            transform: scale(.9);
         }
 
         #btn-nuclear {
             position: absolute;
 
-            right: 15px;
+            right: 14px;
             bottom: 18px;
 
             display: none;
 
-            width: 75px;
-            height: 75px;
+            width: 76px;
+            height: 76px;
 
             border-radius: 50%;
 
@@ -470,24 +479,24 @@
             font-weight: 900;
 
             pointer-events: auto;
-
-            box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
         }
 
-        /* =========================================================
-           CROSSHAIR
-        ========================================================= */
+        /* =====================================================
+           MIRA
+        ===================================================== */
 
         #mira {
-            position: absolute;
+            position: fixed;
 
             left: 50%;
             top: 50%;
 
-            width: 35px;
-            height: 35px;
+            width: 34px;
+            height: 34px;
 
-            transform: translate(-50%, -50%);
+            transform: translate(-50%,-50%);
+
+            display: none;
 
             pointer-events: none;
         }
@@ -498,11 +507,11 @@
 
             position: absolute;
 
-            background: rgba(255, 255, 255, 0.9);
+            background: white;
         }
 
         #mira::before {
-            width: 35px;
+            width: 34px;
             height: 2px;
 
             left: 0;
@@ -511,65 +520,29 @@
 
         #mira::after {
             width: 2px;
-            height: 35px;
+            height: 34px;
 
             left: 16px;
             top: 0;
         }
 
-        /* =========================================================
-           PANTALLA FINAL / NIVEL
-        ========================================================= */
-
-        .resultado {
-            width: min(92vw, 450px);
-
-            padding: 30px;
-
-            border-radius: 22px;
-
-            background: rgba(15, 23, 42, 0.94);
-
-            border: 1px solid rgba(255, 255, 255, 0.12);
-
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
-        }
-
-        .resultado h1 {
-            margin-top: 0;
-
-            font-size: 40px;
-        }
-
-        #pantalla-nivel h1 {
-            color: #facc15;
-        }
-
-        #pantalla-muerte h1 {
-            color: #ef4444;
-        }
-
-        .resultado p {
-            color: #d1d5db;
-        }
-
-        /* =========================================================
-           NOTIFICACIONES
-        ========================================================= */
+        /* =====================================================
+           NOTIFICACION
+        ===================================================== */
 
         #notificacion {
-            position: absolute;
+            position: fixed;
 
             left: 50%;
-            top: 23%;
+            top: 25%;
 
-            transform: translate(-50%, -50%) scale(0.8);
+            transform: translate(-50%,-50%);
 
-            padding: 14px 22px;
+            padding: 14px 20px;
 
-            border-radius: 15px;
+            border-radius: 14px;
 
-            background: rgba(0, 0, 0, 0.82);
+            background: rgba(0,0,0,.85);
 
             color: white;
 
@@ -578,29 +551,54 @@
 
             opacity: 0;
 
-            transition:
-                opacity 0.2s,
-                transform 0.2s;
+            transition: .2s;
 
             pointer-events: none;
-
-            text-align: center;
 
             white-space: nowrap;
         }
 
-        #notificacion.mostrar {
+        #notificacion.visible {
             opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
         }
 
-        /* =========================================================
+        /* =====================================================
+           SUPERVIVENCIA
+        ===================================================== */
+
+        #barra {
+            position: fixed;
+
+            left: 50%;
+            top: 78px;
+
+            transform: translateX(-50%);
+
+            width: min(60vw,300px);
+            height: 7px;
+
+            display: none;
+
+            background: rgba(0,0,0,.6);
+
+            border-radius: 10px;
+
+            overflow: hidden;
+        }
+
+        #progreso {
+            width: 0%;
+            height: 100%;
+
+            background: #ef4444;
+        }
+
+        /* =====================================================
            FLASH
-        ========================================================= */
+        ===================================================== */
 
         #flash {
-            position: absolute;
-
+            position: fixed;
             inset: 0;
 
             background: white;
@@ -608,130 +606,133 @@
             opacity: 0;
 
             pointer-events: none;
+
+            z-index: 2000;
         }
 
-        /* =========================================================
-           BARRA DE SUPERVIVENCIA
-        ========================================================= */
+        /* =====================================================
+           RESULTADOS
+        ===================================================== */
 
-        #barra-supervivencia {
-            position: absolute;
+        .resultado {
+            width: min(92vw,450px);
 
-            left: 50%;
-            top: 75px;
+            padding: 30px;
 
-            transform: translateX(-50%);
+            border-radius: 22px;
 
-            width: min(60vw, 300px);
-            height: 7px;
+            background: rgba(15,23,42,.96);
 
-            display: none;
-
-            overflow: hidden;
-
-            border-radius: 10px;
-
-            background: rgba(0, 0, 0, 0.5);
+            box-shadow:
+                0 20px 60px rgba(0,0,0,.7);
         }
 
-        #progreso-supervivencia {
-            width: 0%;
-            height: 100%;
+        .resultado h1 {
+            margin-top: 0;
 
-            background: #ef4444;
-
-            transition: width 0.3s;
+            font-size: 36px;
         }
 
-        /* =========================================================
-           AYUDA
-        ========================================================= */
+        #pantalla-nivel h1 {
+            color: #facc15;
+        }
+
+        #pantalla-gameover h1 {
+            color: #ef4444;
+        }
 
         .ayuda {
-            margin-top: 15px;
-
-            color: #9ca3af;
+            color: #94a3b8;
 
             font-size: 12px;
+
             line-height: 1.5;
         }
 
-        /* =========================================================
-           MENSAJE WEBXR
-        ========================================================= */
-
-        #mensaje-webxr {
-            margin-top: 10px;
-
-            color: #fbbf24;
-
-            font-size: 12px;
-
-            line-height: 1.4;
-        }
     </style>
 </head>
 
 <body>
 
-<!-- =============================================================
+<!-- ============================================================
      AUDIO
-============================================================= -->
+============================================================ -->
 
-<audio id="audio-boton" src="boton.mp3" preload="auto"></audio>
-<audio id="audio-disparo" src="disparo.mp3" preload="auto"></audio>
-<audio id="audio-fondo" src="fondo.mp3" preload="auto" loop></audio>
+<audio
+    id="audio-boton"
+    src="boton.mp3"
+    preload="auto">
+</audio>
+
+<audio
+    id="audio-disparo"
+    src="disparo.mp3"
+    preload="auto">
+</audio>
+
+<audio
+    id="audio-fondo"
+    src="fondo.mp3"
+    preload="auto"
+    loop>
+</audio>
 
 
-<!-- =============================================================
-     INTERFAZ
-============================================================= -->
+<!-- ============================================================
+     UI
+============================================================ -->
 
-<div id="ui-capa">
+<div id="ui">
 
-    <!-- =========================================================
-         MENÚ PRINCIPAL
-    ========================================================== -->
+    <!-- ========================================================
+         MENU
+    ========================================================= -->
 
-    <section id="menu-principal" class="pantalla activa">
+    <section
+        id="menu"
+        class="pantalla activa"
+    >
 
-        <h1 class="logo">ZOMBIE AR</h1>
+        <h1 class="titulo">
+            ZOMBIE AR
+        </h1>
 
         <p class="subtitulo">
-            Supervivencia aumentada.
-            Detecta una superficie, coloca la zona de juego
-            y elimina a los zombies.
+            Encuentra una superficie, coloca la zona de combate
+            y elimina a los zombies antes de que te alcancen.
         </p>
 
-        <div class="menu-card">
+        <div class="card">
 
-            <h2>Selecciona el modo</h2>
+            <h2>
+                Selecciona modalidad
+            </h2>
 
             <button
-                id="btn-modo-niveles"
-                class="modo-btn modo-niveles"
+                id="btn-niveles"
+                class="modo niveles"
             >
                 🎯 MODO NIVELES
 
-                <span class="descripcion-modo">
-                    Supera oleadas cada vez más difíciles
+                <span class="descripcion">
+                    Cada nivel aumenta la cantidad de zombies.
                 </span>
             </button>
 
             <button
-                id="btn-modo-supervivencia"
-                class="modo-btn modo-supervivencia"
+                id="btn-supervivencia"
+                class="modo supervivencia"
             >
                 ☠️ SUPERVIVENCIA
 
-                <span class="descripcion-modo">
-                    Aguanta el mayor tiempo posible
+                <span class="descripcion">
+                    Sobrevive mientras las hordas aumentan.
                 </span>
             </button>
 
             <p class="ayuda">
-                Recomendado: utiliza el teléfono en posición vertical
-                y apunta hacia el suelo para encontrar una superficie.
+                Para la mejor experiencia utiliza el teléfono
+                en posición vertical y juega en un espacio seguro.
             </p>
 
         </div>
@@ -739,29 +740,56 @@
     </section>
 
 
-    <!-- =========================================================
-         PANTALLA DE MAPEO
-    ========================================================== -->
+    <!-- ========================================================
+         MAPEO
+    ========================================================= -->
 
-    <section id="pantalla-mapeo" class="pantalla">
+    <section
+        id="pantalla-mapeo"
+        class="pantalla"
+    >
 
-        <div class="mapeo-panel">
+        <div class="panel-mapeo">
 
-            <h2
-                id="titulo-mapeo"
-                class="mapeo-titulo"
-            >
-                📱 Preparando AR
+            <h2 id="titulo-mapeo">
+                📱 Mapeando entorno
             </h2>
 
-            <p
-                id="texto-mapeo"
-                class="mapeo-texto"
-            >
-                Primero entraremos en realidad aumentada.
-                Después mueve lentamente el teléfono para detectar
-                una superficie.
+            <p>
+                Para que los zombies aparezcan correctamente,
+                primero debemos detectar una superficie real.
             </p>
+
+            <ol class="pasos">
+
+                <li>
+                    Apunta la cámara hacia el piso.
+                </li>
+
+                <li>
+                    Mueve lentamente el teléfono de izquierda
+                    a derecha.
+                </li>
+
+                <li>
+                    Busca zonas con textura o detalles:
+                    piso, azulejos, madera, mesa, etc.
+                </li>
+
+                <li>
+                    Evita apuntar a una pared completamente lisa.
+                </li>
+
+                <li>
+                    Cuando aparezca el círculo verde,
+                    mantén el teléfono estable.
+                </li>
+
+                <li>
+                    Toca la superficie para colocar la arena.
+                </li>
+
+            </ol>
 
             <div id="estado-mapeo">
                 Esperando...
@@ -769,104 +797,97 @@
 
             <button
                 id="btn-entrar-ar"
-                class="boton-principal"
+                class="btn"
             >
-                📱 ENTRAR EN AR
-            </button>
-
-            <button
-                id="btn-colocar"
-                class="boton-principal"
-                style="display:none;"
-            >
-                📍 COLOCAR ZONA AQUÍ
+                📱 COMENZAR MAPEO
             </button>
 
             <button
                 id="btn-comenzar"
-                class="boton-principal"
+                class="btn"
                 style="display:none;"
             >
                 ▶ COMENZAR PARTIDA
             </button>
 
             <button
-                id="btn-volver-menu"
-                class="boton-secundario"
+                id="btn-volver"
+                class="btn btn-secundario"
             >
-                ← Volver al menú
+                ← VOLVER
             </button>
 
-            <div id="mensaje-webxr"></div>
+            <div id="mensaje-error"></div>
 
         </div>
 
     </section>
 
 
-    <!-- =========================================================
-         RETÍCULO DE MAPEO
-    ========================================================== -->
+    <!-- ========================================================
+         RETICULO
+    ========================================================= -->
 
-    <div id="reticulo-mapeo"></div>
+    <div id="reticulo"></div>
 
 
-    <!-- =========================================================
+    <!-- ========================================================
          HUD
-    ========================================================== -->
+    ========================================================= -->
 
     <div id="hud">
 
-        <div class="hud-box puntos">
+        <div class="hud-box">
             🎯 <span id="puntos">0</span>
         </div>
 
         <div id="hud-centro">
 
-            <div class="hud-box nivel">
-                <span id="texto-nivel">
-                    NIVEL 1
-                </span>
+            <div class="hud-box" id="nivel">
+                NIVEL 1
             </div>
 
-            <div class="hud-box" id="arma-hud">
+            <div class="hud-box" id="arma">
                 🔫 ARMA 1
             </div>
 
-            <div id="booster-hud">
+            <div
+                class="hud-box"
+                id="booster"
+            >
                 Sin booster
             </div>
 
         </div>
 
-        <div class="hud-box vidas">
+        <div class="hud-box">
             ❤️ <span id="vidas">3</span>
         </div>
 
     </div>
 
 
-    <!-- =========================================================
+    <!-- ========================================================
          BARRA SUPERVIVENCIA
-    ========================================================== -->
+    ========================================================= -->
 
-    <div id="barra-supervivencia">
-        <div id="progreso-supervivencia"></div>
+    <div id="barra">
+        <div id="progreso"></div>
     </div>
 
 
-    <!-- =========================================================
+    <!-- ========================================================
          MIRA
-    ========================================================== -->
+    ========================================================= -->
 
     <div id="mira"></div>
 
 
-    <!-- =========================================================
+    <!-- ========================================================
          CONTROLES
-    ========================================================== -->
+    ========================================================= -->
 
-    <div id="controles-juego">
+    <div id="controles">
 
         <button id="btn-disparar">
             🎯<br>
@@ -881,42 +902,49 @@
     </div>
 
 
-    <!-- =========================================================
-         NOTIFICACIÓN
-    ========================================================== -->
+    <!-- ========================================================
+         NOTIFICACION
+    ========================================================= -->
 
     <div id="notificacion"></div>
 
 
-    <!-- =========================================================
+    <!-- ========================================================
          FLASH
-    ========================================================== -->
+    ========================================================= -->
 
     <div id="flash"></div>
 
 
-    <!-- =========================================================
+    <!-- ========================================================
          NIVEL COMPLETADO
-    ========================================================== -->
+    ========================================================= -->
 
-    <section id="pantalla-nivel" class="pantalla">
+    <section
+        id="pantalla-nivel"
+        class="pantalla"
+    >
 
         <div class="resultado">
 
-            <h1>🏆 NIVEL COMPLETADO</h1>
+            <h1>
+                🏆 NIVEL COMPLETADO
+            </h1>
 
             <p>
-                Has eliminado todos los zombies.
+                Eliminaste todos los zombies de esta oleada.
             </p>
 
             <h2>
                 Puntos:
-                <span id="puntos-nivel">0</span>
+                <span id="puntos-nivel">
+                    0
+                </span>
             </h2>
 
             <button
-                id="btn-siguiente-nivel"
-                class="boton-principal"
+                id="btn-siguiente"
+                class="btn"
             >
                 ▶ SIGUIENTE NIVEL
             </button>
@@ -926,15 +954,20 @@
     </section>
 
 
-    <!-- =========================================================
+    <!-- ========================================================
          GAME OVER
-    ========================================================== -->
+    ========================================================= -->
 
-    <section id="pantalla-muerte" class="pantalla">
+    <section
+        id="pantalla-gameover"
+        class="pantalla"
+    >
 
         <div class="resultado">
 
-            <h1>☠️ GAME OVER</h1>
+            <h1>
+                ☠️ GAME OVER
+            </h1>
 
             <p>
                 Los zombies te alcanzaron.
@@ -942,21 +975,23 @@
 
             <h2>
                 Puntuación:
-                <span id="puntos-final">0</span>
+                <span id="puntos-final">
+                    0
+                </span>
             </h2>
 
             <button
                 id="btn-reiniciar"
-                class="boton-principal"
+                class="btn"
             >
                 🔄 JUGAR DE NUEVO
             </button>
 
             <button
                 id="btn-menu-final"
-                class="boton-secundario"
+                class="btn btn-secundario"
             >
-                ← MENÚ PRINCIPAL
+                ← MENÚ
             </button>
 
         </div>
@@ -966,26 +1001,27 @@
 </div>
 
 
-<!-- =============================================================
-     ESCENA A-FRAME
-============================================================= -->
+<!-- ============================================================
+     A-FRAME
+============================================================ -->
 
 <a-scene
     id="escena"
+
     embedded
 
-    vr-mode-ui="enabled: false"
+    xr-mode-ui="XRMode: ar"
 
     renderer="
+        alpha: true;
+        antialias: true;
         colorManagement: true;
-        physicallyCorrectLights: true;
-        alpha: true
+        physicallyCorrectLights: false
     "
 
     webxr="
         requiredFeatures: hit-test;
-        optionalFeatures: local-floor, dom-overlay;
-        overlayElement: #ui-capa
+        optionalFeatures: local-floor, dom-overlay
     "
 >
 
@@ -999,95 +1035,90 @@
     </a-assets>
 
 
-    <!-- =========================================================
+    <!-- ========================================================
          LUCES
-    ========================================================== -->
+    ========================================================= -->
 
     <a-entity
         light="
             type: ambient;
-            intensity: 1.5
+            intensity: 1.8
         "
     ></a-entity>
 
     <a-entity
         light="
             type: directional;
-            intensity: 1.8
+            intensity: 1.5
         "
         position="2 5 3"
     ></a-entity>
 
 
-    <!-- =========================================================
-         ARENA AR
-    ========================================================== -->
+    <!-- ========================================================
+         ARENA
+    ========================================================= -->
 
-    <a-entity id="arena">
+    <a-entity
+        id="arena"
+    >
 
-        <!-- Plataforma virtual -->
         <a-cylinder
             id="plataforma"
-            radius="4"
-            height="0.08"
 
-            material="
-                color: #17201a;
-                roughness: 0.9;
-                metalness: 0
-            "
+            radius="3.8"
+            height="0.06"
 
             visible="false"
+
+            material="
+                color:#18231c;
+                roughness:0.95
+            "
         ></a-cylinder>
 
 
-        <!-- Borde de arena -->
-
         <a-torus
-            id="borde-arena"
+            id="borde"
 
-            radius="3.8"
+            radius="3.75"
             radius-tubular="0.035"
 
-            rotation="0 0 0"
+            visible="false"
 
             material="
-                color: #22c55e;
-                emissive: #0b4d25;
-                emissiveIntensity: 1.2
+                color:#22c55e;
+                emissive:#0b4d25;
+                emissiveIntensity:1
             "
-
-            visible="false"
         ></a-torus>
 
     </a-entity>
 
 
-    <!-- =========================================================
-         RETÍCULO 3D PARA HIT TEST
-    ========================================================== -->
+    <!-- ========================================================
+         RETICULO 3D
+    ========================================================= -->
 
     <a-ring
         id="reticulo-3d"
 
-        radius-inner="0.10"
-        radius-outer="0.14"
-
-        rotation="-90 0 0"
-
-        material="
-            color: #22c55e;
-            shader: flat;
-            opacity: 0.9
-        "
+        radius-inner="0.09"
+        radius-outer="0.13"
 
         visible="false"
+
+        material="
+            color:#22c55e;
+            shader:flat;
+            opacity:.9
+        "
     ></a-ring>
 
 
-    <!-- =========================================================
-         CÁMARA
-    ========================================================== -->
+    <!-- ========================================================
+         CAMARA
+    ========================================================= -->
 
     <a-camera
         id="camara"
@@ -1095,9 +1126,9 @@
         position="0 1.6 0"
 
         look-controls="
-            touchEnabled: false;
-            mouseEnabled: false;
-            magicWindowTrackingEnabled: true
+            touchEnabled:false;
+            mouseEnabled:false;
+            magicWindowTrackingEnabled:true
         "
     ></a-camera>
 
@@ -1105,13 +1136,16 @@
 
 
 <script>
+
 /* ================================================================
-   VARIABLES PRINCIPALES
+   VARIABLES
 ================================================================ */
 
-let modoJuego = null;
+let modo = null;
 
-let juegoIniciado = false;
+let juegoActivo = false;
+
+let gameOver = false;
 
 let nivelActual = 1;
 
@@ -1119,27 +1153,27 @@ let puntos = 0;
 
 let vidas = 3;
 
-let zombiesVivos = 0;
-
-let zombiesGenerados = 0;
-
-let zombiesObjetivo = 0;
-
-let gameOver = false;
-
 let armaNivel = 1;
 
 let nuclearDisponible = false;
 
 let combo = 0;
 
-let ultimoDisparo = 0;
+let zombiesVivos = 0;
+
+let zombiesGenerados = 0;
+
+let zombiesObjetivo = 0;
+
+let intervaloNivel = null;
+
+let intervaloSupervivencia = null;
 
 let tiempoSupervivencia = 0;
 
-let ultimoAumentoSupervivencia = 0;
+let ultimaHorda = 0;
 
-let temporizadorJuego = null;
+let ultimoDisparo = 0;
 
 let zonaColocada = false;
 
@@ -1149,55 +1183,79 @@ let hitTestSource = null;
 
 let hitTestSourceRequested = false;
 
-let ultimoHitMatrix = null;
+let referenciaEspacial = null;
 
-let reticuloEncontrado = false;
+let superficieDetectada = false;
 
-let sonidoFondoActivo = false;
+let matrizSuperficie = null;
+
+
+/*
+ * Dirección inicial del jugador.
+ *
+ * Se calcula cuando coloca la arena.
+ * Los zombies solamente se generan dentro
+ * del hemisferio frontal de 180 grados.
+ */
+
+let direccionFrontal = new THREE.Vector3(
+    0,
+    0,
+    -1
+);
 
 
 /* ================================================================
    REFERENCIAS
 ================================================================ */
 
-const escena = document.getElementById("escena");
+const escena =
+    document.getElementById("escena");
 
-const arena = document.getElementById("arena");
+const arena =
+    document.getElementById("arena");
 
-const plataforma = document.getElementById("plataforma");
+const plataforma =
+    document.getElementById("plataforma");
 
-const bordeArena = document.getElementById("borde-arena");
+const borde =
+    document.getElementById("borde");
 
-const reticulo3D = document.getElementById("reticulo-3d");
+const reticulo3D =
+    document.getElementById("reticulo-3d");
 
-const menuPrincipal = document.getElementById("menu-principal");
+const reticulo =
+    document.getElementById("reticulo");
 
-const pantallaMapeo = document.getElementById("pantalla-mapeo");
+const menu =
+    document.getElementById("menu");
 
-const pantallaNivel = document.getElementById("pantalla-nivel");
+const pantallaMapeo =
+    document.getElementById("pantalla-mapeo");
 
-const pantallaMuerte = document.getElementById("pantalla-muerte");
+const pantallaNivel =
+    document.getElementById("pantalla-nivel");
 
-const hud = document.getElementById("hud");
+const pantallaGameOver =
+    document.getElementById("pantalla-gameover");
 
-const controlesJuego = document.getElementById("controles-juego");
+const hud =
+    document.getElementById("hud");
 
-const barraSupervivencia = document.getElementById("barra-supervivencia");
+const controles =
+    document.getElementById("controles");
 
-const progresoSupervivencia =
-    document.getElementById("progreso-supervivencia");
+const barra =
+    document.getElementById("barra");
+
+const progreso =
+    document.getElementById("progreso");
 
 const notificacion =
     document.getElementById("notificacion");
 
-const reticuloMapeo =
-    document.getElementById("reticulo-mapeo");
-
-const estadoMapeo =
-    document.getElementById("estado-mapeo");
-
-const mensajeWebXR =
-    document.getElementById("mensaje-webxr");
+const flash =
+    document.getElementById("flash");
 
 const audioBoton =
     document.getElementById("audio-boton");
@@ -1210,202 +1268,149 @@ const audioFondo =
 
 
 /* ================================================================
-   FUNCIONES DE AUDIO
+   AUDIO
 ================================================================ */
 
-function sonidoBoton() {
+function reproducirBoton() {
 
-    try {
+    audioBoton.currentTime = 0;
 
-        audioBoton.currentTime = 0;
+    const p =
+        audioBoton.play();
 
-        const promesa = audioBoton.play();
-
-        if (promesa !== undefined) {
-            promesa.catch(() => {});
-        }
-
-    } catch (error) {
-        console.log("Audio botón:", error);
+    if (p) {
+        p.catch(() => {});
     }
+
 }
 
 
-function sonidoDisparo() {
+function reproducirDisparo() {
 
-    try {
+    audioDisparo.currentTime = 0;
 
-        audioDisparo.currentTime = 0;
+    const p =
+        audioDisparo.play();
 
-        const promesa = audioDisparo.play();
-
-        if (promesa !== undefined) {
-            promesa.catch(() => {});
-        }
-
-    } catch (error) {
-        console.log("Audio disparo:", error);
+    if (p) {
+        p.catch(() => {});
     }
+
 }
 
 
-function iniciarMusicaFondo() {
+function iniciarFondo() {
 
-    try {
+    audioFondo.loop = true;
 
-        audioFondo.loop = true;
+    audioFondo.volume = 0.45;
 
-        audioFondo.volume = 0.45;
+    const p =
+        audioFondo.play();
 
-        const promesa = audioFondo.play();
-
-        if (promesa !== undefined) {
-
-            promesa
-                .then(() => {
-
-                    sonidoFondoActivo = true;
-
-                })
-                .catch(error => {
-
-                    console.log(
-                        "El navegador bloqueó el audio:",
-                        error
-                    );
-
-                });
-        }
-
-    } catch (error) {
-
-        console.log("Audio fondo:", error);
-
+    if (p) {
+        p.catch(() => {});
     }
+
 }
 
 
-function detenerMusicaFondo() {
+function detenerFondo() {
 
-    try {
+    audioFondo.pause();
 
-        audioFondo.pause();
+    audioFondo.currentTime = 0;
 
-        audioFondo.currentTime = 0;
-
-        sonidoFondoActivo = false;
-
-    } catch (error) {}
 }
 
 
 /* ================================================================
-   NOTIFICACIONES
-================================================================ */
-
-function mostrarNotificacion(texto, duracion = 1800) {
-
-    notificacion.innerText = texto;
-
-    notificacion.classList.add("mostrar");
-
-    setTimeout(() => {
-
-        notificacion.classList.remove("mostrar");
-
-    }, duracion);
-}
-
-
-/* ================================================================
-   CAMBIO DE PANTALLAS
+   PANTALLAS
 ================================================================ */
 
 function ocultarPantallas() {
 
-    menuPrincipal.classList.remove("activa");
+    menu.classList.remove("activa");
 
     pantallaMapeo.classList.remove("activa");
 
     pantallaNivel.classList.remove("activa");
 
-    pantallaMuerte.classList.remove("activa");
+    pantallaGameOver.classList.remove("activa");
 
 }
 
 
-function mostrarMenu() {
+function volverMenu() {
+
+    reproducirBoton();
+
+    detenerFondo();
+
+    juegoActivo = false;
+
+    gameOver = true;
+
+    limpiarIntervalos();
+
+    eliminarTodosLosZombies();
 
     ocultarPantallas();
 
-    menuPrincipal.classList.add("activa");
+    menu.classList.add("activa");
 
     hud.style.display = "none";
 
-    controlesJuego.style.display = "none";
+    controles.style.display = "none";
 
-    barraSupervivencia.style.display = "none";
+    barra.style.display = "none";
 
-    reticuloMapeo.classList.remove("visible");
+    reticulo.style.display = "none";
 
 }
 
 
 /* ================================================================
-   SELECCIÓN DE MODALIDAD
+   SELECCIONAR MODO
 ================================================================ */
 
-function seleccionarModo(modo) {
+function seleccionarModo(nuevoModo) {
 
-    sonidoBoton();
+    reproducirBoton();
 
-    modoJuego = modo;
-
-    juegoIniciado = false;
+    modo = nuevoModo;
 
     zonaColocada = false;
+
+    superficieDetectada = false;
+
+    arActivo = false;
 
     ocultarPantallas();
 
     pantallaMapeo.classList.add("activa");
 
-    document.getElementById("btn-entrar-ar").style.display = "block";
+    document.getElementById(
+        "btn-entrar-ar"
+    ).style.display = "block";
 
-    document.getElementById("btn-colocar").style.display = "none";
+    document.getElementById(
+        "btn-comenzar"
+    ).style.display = "none";
 
-    document.getElementById("btn-comenzar").style.display = "none";
+    document.getElementById(
+        "mensaje-error"
+    ).innerText = "";
 
-    document.getElementById("btn-volver-menu").style.display = "block";
+    document.getElementById(
+        "estado-mapeo"
+    ).innerText =
+        "Pulsa COMENZAR MAPEO.";
 
-    document.getElementById("reticulo-mapeo").classList.remove("visible");
-
-    if (modo === "niveles") {
-
-        document.getElementById("titulo-mapeo").innerText =
-            "🎯 MODO NIVELES";
-
-        document.getElementById("texto-mapeo").innerText =
-            "Entra en AR y mueve lentamente el teléfono. " +
-            "Cuando aparezca el retículo verde sobre una superficie, " +
-            "tócala para colocar la zona de combate.";
-
-    } else {
-
-        document.getElementById("titulo-mapeo").innerText =
-            "☠️ MODO SUPERVIVENCIA";
-
-        document.getElementById("texto-mapeo").innerText =
-            "Entra en AR y busca una superficie. " +
-            "Coloca la zona de combate y sobrevive el mayor tiempo posible.";
-
-    }
-
-    estadoMapeo.innerText =
-        "Pulsa ENTRAR EN AR para comenzar el mapeo.";
-
-    estadoMapeo.style.color = "#facc15";
-
-    mensajeWebXR.innerText = "";
+    document.getElementById(
+        "estado-mapeo"
+    ).style.color =
+        "#facc15";
 
 }
 
@@ -1414,54 +1419,123 @@ function seleccionarModo(modo) {
    ENTRAR EN AR
 ================================================================ */
 
-async function entrarEnAR() {
+async function comenzarMapeo() {
 
-    sonidoBoton();
+    reproducirBoton();
 
-    const xr = navigator.xr;
+    const estado =
+        document.getElementById(
+            "estado-mapeo"
+        );
 
-    if (!xr) {
+    const error =
+        document.getElementById(
+            "mensaje-error"
+        );
 
-        mostrarModoCamaraFallback();
+
+    error.innerText = "";
+
+
+    /*
+     * Comprobar WebXR.
+     */
+
+    if (!navigator.xr) {
+
+        error.innerText =
+            "Este navegador no ofrece WebXR. " +
+            "Prueba Chrome en Android con ARCore " +
+            "o Safari/Chrome compatible con ARKit.";
+
+        estado.innerText =
+            "❌ WebXR no disponible";
+
+        estado.style.color =
+            "#ef4444";
 
         return;
 
     }
 
+
     try {
 
         const compatible =
-            await xr.isSessionSupported("immersive-ar");
+            await navigator.xr.isSessionSupported(
+                "immersive-ar"
+            );
+
 
         if (!compatible) {
 
-            mostrarModoCamaraFallback();
+            error.innerText =
+                "El teléfono o navegador no soporta " +
+                "AR inmersiva (immersive-ar).";
+
+            estado.innerText =
+                "❌ AR no compatible";
+
+            estado.style.color =
+                "#ef4444";
 
             return;
 
         }
 
-    } catch (error) {
 
-        console.log(error);
+    } catch (e) {
 
-        mostrarModoCamaraFallback();
+        console.error(e);
+
+        error.innerText =
+            "No se pudo comprobar la compatibilidad WebXR.";
 
         return;
+
     }
 
 
     try {
 
-        estadoMapeo.innerText =
-            "Abriendo realidad aumentada...";
+        estado.innerText =
+            "📱 Iniciando realidad aumentada...";
 
-        estadoMapeo.style.color = "#facc15";
+        estado.style.color =
+            "#facc15";
 
 
         /*
-         * A-Frame solicita la sesión WebXR utilizando
-         * la configuración del componente webxr.
+         * Aseguramos que la escena esté cargada.
+         */
+
+        if (!escena.hasLoaded) {
+
+            await new Promise(
+                resolve => {
+
+                    escena.addEventListener(
+                        "loaded",
+                        resolve,
+                        {
+                            once:true
+                        }
+                    );
+
+                }
+            );
+
+        }
+
+
+        /*
+         * Entramos en AR.
+         *
+         * IMPORTANTE:
+         * ya no usamos renderer.setAnimationLoop
+         * manualmente.
+         *
+         * A-Frame controla el ciclo de render.
          */
 
         await escena.enterVR();
@@ -1469,260 +1543,485 @@ async function entrarEnAR() {
 
         arActivo = true;
 
-        document.getElementById("btn-entrar-ar").style.display =
-            "none";
 
-        document.getElementById("btn-volver-menu").style.display =
-            "none";
+        document.getElementById(
+            "btn-entrar-ar"
+        ).style.display = "none";
 
-        estadoMapeo.innerText =
-            "🔎 Buscando superficies...";
 
-        estadoMapeo.style.color =
+        document.getElementById(
+            "btn-volver"
+        ).style.display = "none";
+
+
+        estado.innerText =
+            "🔎 BUSCANDO SUPERFICIE...";
+
+        estado.style.color =
             "#22c55e";
 
-        document.getElementById("texto-mapeo").innerText =
-            "Mueve lentamente el teléfono y apunta hacia el suelo. " +
-            "Cuando aparezca el círculo verde, toca la pantalla.";
 
-        reticuloMapeo.classList.add("visible");
+        /*
+         * Iniciar detección.
+         */
 
-        iniciarHitTest();
+        iniciarDeteccionSuperficie();
 
-    } catch (error) {
+
+    } catch (e) {
 
         console.error(
-            "No se pudo iniciar WebXR:",
-            error
+            "Error entrando en AR:",
+            e
         );
 
-        mostrarModoCamaraFallback();
+
+        estado.innerText =
+            "❌ No se pudo iniciar AR";
+
+
+        estado.style.color =
+            "#ef4444";
+
+
+        error.innerText =
+            "Asegúrate de usar HTTPS y un dispositivo " +
+            "compatible con WebXR AR. " +
+            "Si el navegador pide permiso de movimiento " +
+            "o cámara, acéptalo.";
 
     }
+
 }
 
 
 /* ================================================================
-   HIT TEST
+   DETECCION DE SUPERFICIE
 ================================================================ */
 
-function iniciarHitTest() {
+async function iniciarDeteccionSuperficie() {
 
-    hitTestSourceRequested = false;
-
-    hitTestSource = null;
-
-    reticuloEncontrado = false;
+    const renderer =
+        escena.renderer;
 
 
-    const renderer = escena.renderer;
-
-    if (!renderer || !renderer.xr) {
-
-        mostrarModoCamaraFallback();
+    if (
+        !renderer ||
+        !renderer.xr
+    ) {
 
         return;
 
     }
 
 
-    renderer.setAnimationLoop(
-        actualizarHitTest
+    hitTestSourceRequested =
+        false;
+
+    hitTestSource =
+        null;
+
+    referenciaEspacial =
+        null;
+
+
+    /*
+     * A-Frame ejecuta este evento
+     * en su ciclo de render.
+     */
+
+    renderer.xr.addEventListener(
+        "sessionstart",
+        prepararHitTest
     );
+
+
+    /*
+     * Intentamos inmediatamente.
+     */
+
+    prepararHitTest();
 
 }
 
 
-async function actualizarHitTest(timestamp, frame) {
+/* ================================================================
+   PREPARAR HIT TEST
+================================================================ */
 
-    if (!frame) {
+async function prepararHitTest() {
+
+    if (
+        hitTestSourceRequested
+    ) {
+
+        return;
+
+    }
+
+
+    const renderer =
+        escena.renderer;
+
+
+    if (
+        !renderer ||
+        !renderer.xr ||
+        !renderer.xr.isPresenting
+    ) {
+
+        return;
+
+    }
+
+
+    const session =
+        renderer.xr.getSession();
+
+
+    if (!session) {
         return;
     }
 
-    const session = frame.session;
 
-    const referenceSpace =
-        rendererReferenceSpace();
-
-    if (!referenceSpace) {
-        return;
-    }
+    hitTestSourceRequested =
+        true;
 
 
-    /*
-     * Solicitar fuente de Hit Test una sola vez.
-     */
+    try {
 
-    if (!hitTestSourceRequested) {
+        referenciaEspacial =
+            await session.requestReferenceSpace(
+                "local-floor"
+            );
 
-        hitTestSourceRequested = true;
+
+        const viewerSpace =
+            await session.requestReferenceSpace(
+                "viewer"
+            );
+
+
+        hitTestSource =
+            await session.requestHitTestSource({
+                space: viewerSpace
+            });
+
+
+        /*
+         * Escuchar frames de WebXR.
+         */
+
+        renderer.xr.addEventListener(
+            "sessionstart",
+            () => {}
+        );
+
+
+        iniciarLoopHitTest();
+
+
+    } catch (e) {
+
+        console.error(
+            "Hit Test:",
+            e
+        );
+
+
+        /*
+         * Intentar "local" si local-floor
+         * no está disponible.
+         */
 
         try {
 
+            referenciaEspacial =
+                await session.requestReferenceSpace(
+                    "local"
+                );
+
+
             const viewerSpace =
-                await session.requestReferenceSpace("viewer");
+                await session.requestReferenceSpace(
+                    "viewer"
+                );
+
 
             hitTestSource =
                 await session.requestHitTestSource({
                     space: viewerSpace
                 });
 
-        } catch (error) {
 
-            console.error(
-                "Hit Test no disponible:",
-                error
-            );
+            iniciarLoopHitTest();
 
-            mensajeWebXR.innerText =
-                "El dispositivo no pudo activar el mapeo de superficies.";
+
+        } catch (e2) {
+
+            console.error(e2);
+
+            document.getElementById(
+                "mensaje-error"
+            ).innerText =
+                "El dispositivo entró en AR, " +
+                "pero no pudo activar el detector de superficies.";
 
         }
 
     }
 
-
-    if (!hitTestSource) {
-
-        return;
-
-    }
+}
 
 
-    const hitTestResults =
-        frame.getHitTestResults(hitTestSource);
+/* ================================================================
+   LOOP HIT TEST
+================================================================ */
 
+function iniciarLoopHitTest() {
 
-    if (hitTestResults.length === 0) {
-
-        reticulo3D.setAttribute(
-            "visible",
-            false
-        );
-
-        reticuloEncontrado = false;
-
-        estadoMapeo.innerText =
-            "🔎 Buscando una superficie...";
-
-        return;
-
-    }
-
-
-    const hit =
-        hitTestResults[0];
-
-
-    const pose =
-        hit.getPose(referenceSpace);
-
-
-    if (!pose) {
-
-        return;
-
-    }
-
-
-    const matrix =
-        pose.transform.matrix;
-
-
-    reticulo3D.object3D.matrix.fromArray(matrix);
-
-    reticulo3D.object3D.matrixAutoUpdate = false;
-
-    reticulo3D.object3D.visible = true;
-
-    reticuloEncontrado = true;
-
-    ultimoHitMatrix = matrix;
-
-    estadoMapeo.innerText =
-        "✅ Superficie detectada — toca para colocar";
-
-    estadoMapeo.style.color =
-        "#22c55e";
+    const renderer =
+        escena.renderer;
 
 
     /*
-     * También mostramos un retículo visual
-     * en la pantalla.
+     * NO reemplazamos el animation loop de A-Frame.
+     *
+     * Usamos el callback de render del renderer.
      */
 
-    reticuloMapeo.classList.add("visible");
+    renderer.setAnimationLoop(
+        function(
+            time,
+            frame
+        ) {
+
+            /*
+             * A-Frame sigue utilizando
+             * Three.js para renderizar.
+             */
+
+            if (!frame) {
+                return;
+            }
+
+
+            actualizarHitTest(frame);
+
+        }
+    );
 
 }
 
 
 /* ================================================================
-   OBTENER REFERENCE SPACE
+   ACTUALIZAR HIT TEST
 ================================================================ */
 
-function rendererReferenceSpace() {
+function actualizarHitTest(frame) {
 
-    try {
+    if (
+        !hitTestSource ||
+        !referenciaEspacial
+    ) {
 
-        return escena.renderer.xr.getReferenceSpace();
-
-    } catch (error) {
-
-        return null;
+        return;
 
     }
 
+
+    const results =
+        frame.getHitTestResults(
+            hitTestSource
+        );
+
+
+    if (
+        results.length === 0
+    ) {
+
+        superficieDetectada =
+            false;
+
+        reticulo3D.object3D.visible =
+            false;
+
+        reticulo.style.display =
+            "none";
+
+
+        document.getElementById(
+            "estado-mapeo"
+        ).innerText =
+            "🔎 Mueve lentamente el teléfono buscando una superficie...";
+
+        return;
+
+    }
+
+
+    const resultado =
+        results[0];
+
+
+    const pose =
+        resultado.getPose(
+            referenciaEspacial
+        );
+
+
+    if (!pose) {
+        return;
+    }
+
+
+    superficieDetectada =
+        true;
+
+
+    matrizSuperficie =
+        pose.transform.matrix;
+
+
+    /*
+     * Aplicar matriz al retículo.
+     */
+
+    reticulo3D.object3D.matrix
+        .fromArray(
+            matrizSuperficie
+        );
+
+
+    reticulo3D.object3D.matrixAutoUpdate =
+        false;
+
+
+    reticulo3D.object3D.visible =
+        true;
+
+
+    reticulo.style.display =
+        "block";
+
+
+    document.getElementById(
+        "estado-mapeo"
+    ).innerText =
+        "✅ SUPERFICIE DETECTADA — TOCA AQUÍ";
+
+    document.getElementById(
+        "estado-mapeo"
+    ).style.color =
+        "#22c55e";
+
 }
 
 
 /* ================================================================
-   TOQUE PARA COLOCAR LA ARENA
+   COLOCAR ARENA
 ================================================================ */
 
 function colocarArena() {
 
-    sonidoBoton();
-
-    if (!arActivo) {
-        return;
-    }
-
-    if (!reticuloEncontrado) {
-
-        mostrarNotificacion(
-            "🔎 Primero busca una superficie",
-            2000
-        );
+    if (
+        !arActivo ||
+        !superficieDetectada ||
+        !matrizSuperficie
+    ) {
 
         return;
 
     }
 
 
-    const matriz =
-        reticulo3D.object3D.matrix;
+    reproducirBoton();
 
 
     /*
-     * Copiar posición del retículo.
+     * Posición detectada.
      */
 
     const posicion =
         new THREE.Vector3();
 
-    posicion.setFromMatrixPosition(matriz);
+
+    posicion.setFromMatrixPosition(
+        new THREE.Matrix4()
+            .fromArray(
+                matrizSuperficie
+            )
+    );
 
 
     /*
-     * Colocar la arena.
+     * Obtener dirección inicial
+     * de la cámara.
+     */
+
+    const camara =
+        document.getElementById(
+            "camara"
+        ).object3D;
+
+
+    const quaternion =
+        new THREE.Quaternion();
+
+
+    camara.getWorldQuaternion(
+        quaternion
+    );
+
+
+    direccionFrontal.set(
+        0,
+        0,
+        -1
+    );
+
+
+    direccionFrontal.applyQuaternion(
+        quaternion
+    );
+
+
+    /*
+     * Solo nos interesa la dirección
+     * horizontal.
+     */
+
+    direccionFrontal.y = 0;
+
+
+    if (
+        direccionFrontal.lengthSq() <
+        0.001
+    ) {
+
+        direccionFrontal.set(
+            0,
+            0,
+            -1
+        );
+
+    }
+
+
+    direccionFrontal.normalize();
+
+
+    /*
+     * Colocar arena.
      */
 
     arena.object3D.position.copy(
         posicion
     );
 
+
     /*
-     * La arena queda horizontal.
+     * La arena permanece horizontal.
      */
 
     arena.object3D.rotation.set(
@@ -1732,204 +2031,59 @@ function colocarArena() {
     );
 
 
-    plataforma.setAttribute(
-        "visible",
-        true
-    );
+    plataforma.object3D.visible =
+        true;
 
-    bordeArena.setAttribute(
-        "visible",
-        true
-    );
+    borde.object3D.visible =
+        true;
 
 
-    zonaColocada = true;
+    zonaColocada =
+        true;
 
 
-    reticulo3D.setAttribute(
-        "visible",
-        false
-    );
-
-    reticuloMapeo.classList.remove(
-        "visible"
-    );
+    superficieDetectada =
+        false;
 
 
-    estadoMapeo.innerText =
-        "✅ ZONA COLOCADA";
+    reticulo3D.object3D.visible =
+        false;
 
-    estadoMapeo.style.color =
+
+    reticulo.style.display =
+        "none";
+
+
+    document.getElementById(
+        "estado-mapeo"
+    ).innerText =
+        "✅ ZONA COLOCADA CORRECTAMENTE";
+
+    document.getElementById(
+        "estado-mapeo"
+    ).style.color =
         "#22c55e";
 
 
-    document.getElementById("texto-mapeo").innerText =
-        "La zona de juego fue colocada correctamente. " +
-        "Ahora puedes comenzar la partida.";
-
-    document.getElementById("btn-comenzar").style.display =
+    document.getElementById(
+        "btn-comenzar"
+    ).style.display =
         "block";
 
-    document.getElementById("btn-colocar").style.display =
-        "none";
+
+    document.getElementById(
+        "mensaje-error"
+    ).innerText =
+        "La zona quedó delante de ti. " +
+        "Los zombies aparecerán únicamente dentro " +
+        "de los 180° frontales para evitar que tengas " +
+        "que girarte completamente.";
+
 
     mostrarNotificacion(
-        "📍 ¡Zona colocada!",
+        "📍 ¡ZONA LISTA!",
         1800
     );
-
-}
-
-
-/* ================================================================
-   FALLBACK PARA DISPOSITIVOS SIN WEBXR AR
-================================================================ */
-
-async function mostrarModoCamaraFallback() {
-
-    console.warn(
-        "WebXR AR no disponible. Activando modo cámara."
-    );
-
-
-    estadoMapeo.innerText =
-        "⚠️ AR nativa no disponible";
-
-    estadoMapeo.style.color =
-        "#facc15";
-
-
-    document.getElementById("texto-mapeo").innerText =
-        "Este dispositivo/navegador no permite WebXR AR. " +
-        "Se utilizará un modo de cámara alternativa para poder probar el juego.";
-
-
-    mensajeWebXR.innerText =
-        "Para el mapeo real utiliza un teléfono compatible " +
-        "con WebXR y abre el proyecto mediante HTTPS.";
-
-
-    try {
-
-        /*
-         * Cámara trasera.
-         */
-
-        const stream =
-            await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: {
-                        ideal: "environment"
-                    }
-                },
-                audio: false
-            });
-
-
-        let video =
-            document.getElementById("video-fallback");
-
-
-        if (!video) {
-
-            video =
-                document.createElement("video");
-
-            video.id =
-                "video-fallback";
-
-            video.autoplay =
-                true;
-
-            video.playsInline =
-                true;
-
-            video.muted =
-                true;
-
-            video.style.position =
-                "fixed";
-
-            video.style.inset =
-                "0";
-
-            video.style.width =
-                "100%";
-
-            video.style.height =
-                "100%";
-
-            video.style.objectFit =
-                "cover";
-
-            video.style.zIndex =
-                "-10";
-
-            document.body.prepend(
-                video
-            );
-
-        }
-
-
-        video.srcObject =
-            stream;
-
-
-        /*
-         * En fallback colocamos la arena
-         * delante de la cámara.
-         */
-
-        arena.object3D.position.set(
-            0,
-            -1.4,
-            -4
-        );
-
-
-        plataforma.setAttribute(
-            "visible",
-            true
-        );
-
-        bordeArena.setAttribute(
-            "visible",
-            true
-        );
-
-
-        zonaColocada =
-            true;
-
-
-        document.getElementById("btn-entrar-ar").style.display =
-            "none";
-
-        document.getElementById("btn-comenzar").style.display =
-            "block";
-
-        document.getElementById("btn-volver-menu").style.display =
-            "none";
-
-
-        estadoMapeo.innerText =
-            "✅ MODO CÁMARA ACTIVADO";
-
-        estadoMapeo.style.color =
-            "#22c55e";
-
-    } catch (error) {
-
-        console.error(error);
-
-        estadoMapeo.innerText =
-            "❌ No se pudo acceder a la cámara.";
-
-        estadoMapeo.style.color =
-            "#ef4444";
-
-    }
 
 }
 
@@ -1940,13 +2094,14 @@ async function mostrarModoCamaraFallback() {
 
 function comenzarPartida() {
 
-    sonidoBoton();
+    reproducirBoton();
+
 
     if (!zonaColocada) {
 
         mostrarNotificacion(
-            "📍 Primero coloca la zona de juego",
-            2000
+            "Primero debes colocar la zona.",
+            1800
         );
 
         return;
@@ -1954,32 +2109,49 @@ function comenzarPartida() {
     }
 
 
-    juegoIniciado = true;
-
-    gameOver = false;
-
-    puntos = 0;
-
-    vidas = 3;
-
-    nivelActual = 1;
-
-    armaNivel = 1;
-
-    nuclearDisponible = false;
-
-    combo = 0;
-
-    zombiesVivos = 0;
-
-    zombiesGenerados = 0;
-
-    tiempoSupervivencia = 0;
-
-    ultimoAumentoSupervivencia = 0;
-
+    limpiarIntervalos();
 
     eliminarTodosLosZombies();
+
+
+    juegoActivo =
+        true;
+
+    gameOver =
+        false;
+
+
+    nivelActual =
+        1;
+
+    puntos =
+        0;
+
+    vidas =
+        3;
+
+    armaNivel =
+        1;
+
+    nuclearDisponible =
+        false;
+
+    combo =
+        0;
+
+
+    zombiesGenerados =
+        0;
+
+    zombiesVivos =
+        0;
+
+
+    tiempoSupervivencia =
+        0;
+
+    ultimaHorda =
+        0;
 
 
     actualizarHUD();
@@ -1991,29 +2163,27 @@ function comenzarPartida() {
     hud.style.display =
         "flex";
 
-    controlesJuego.style.display =
+
+    controles.style.display =
         "flex";
 
 
-    /*
-     * La música comienza EXACTAMENTE
-     * al iniciar la partida.
-     */
-
-    iniciarMusicaFondo();
+    document.getElementById(
+        "mira"
+    ).style.display =
+        "block";
 
 
-    if (modoJuego === "niveles") {
+    iniciarFondo();
 
-        barraSupervivencia.style.display =
-            "none";
+
+    if (
+        modo === "niveles"
+    ) {
 
         iniciarNivel();
 
     } else {
-
-        barraSupervivencia.style.display =
-            "block";
 
         iniciarSupervivencia();
 
@@ -2023,92 +2193,84 @@ function comenzarPartida() {
 
 
 /* ================================================================
-   INICIAR NIVEL
+   NIVEL
 ================================================================ */
 
 function iniciarNivel() {
 
-    if (gameOver) {
-        return;
-    }
-
+    limpiarIntervalos();
 
     eliminarTodosLosZombies();
 
 
-    zombiesVivos = 0;
+    zombiesGenerados =
+        0;
 
-    zombiesGenerados = 0;
+    zombiesVivos =
+        0;
 
-
-    /*
-     * NIVEL 1 = 4 zombies
-     * NIVEL 2 = 6
-     * NIVEL 3 = 8
-     * NIVEL 4 = 10...
-     */
 
     zombiesObjetivo =
-        4 + ((nivelActual - 1) * 2);
+        4 +
+        ((nivelActual - 1) * 2);
 
 
-    document.getElementById("texto-nivel").innerText =
-        "NIVEL " + nivelActual;
+    actualizarHUD();
 
 
     mostrarNotificacion(
-        "🎯 NIVEL " + nivelActual,
-        1600
+        "🎯 NIVEL " +
+        nivelActual,
+        1500
     );
 
 
     /*
-     * Generación progresiva.
+     * Primer zombie inmediatamente.
      */
 
-    generarSiguienteZombie();
-
-
-    temporizadorJuego =
-        setInterval(() => {
-
-            if (
-                !gameOver &&
-                zombiesGenerados <
-                zombiesObjetivo
-            ) {
-
-                generarSiguienteZombie();
-
-            }
-
-        }, 1300);
-
-}
-
-
-/* ================================================================
-   GENERAR ZOMBIE
-================================================================ */
-
-function generarSiguienteZombie() {
-
-    if (gameOver) {
-        return;
-    }
-
-
-    if (
-        zombiesGenerados >=
-        zombiesObjetivo
-    ) {
-
-        return;
-
-    }
-
-
     crearZombie();
+
+
+    /*
+     * Los demás llegan progresivamente.
+     */
+
+    intervaloNivel =
+        setInterval(
+            () => {
+
+                if (
+                    !juegoActivo ||
+                    gameOver
+                ) {
+
+                    return;
+
+                }
+
+
+                if (
+                    zombiesGenerados <
+                    zombiesObjetivo
+                ) {
+
+                    crearZombie();
+
+                } else {
+
+                    clearInterval(
+                        intervaloNivel
+                    );
+
+                    intervaloNivel =
+                        null;
+
+                }
+
+            },
+            1600
+        );
 
 }
 
@@ -2118,6 +2280,27 @@ function generarSiguienteZombie() {
 ================================================================ */
 
 function crearZombie() {
+
+    if (
+        !juegoActivo ||
+        gameOver
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        modo === "niveles" &&
+        zombiesGenerados >=
+        zombiesObjetivo
+    ) {
+
+        return;
+
+    }
+
 
     const zombie =
         document.createElement(
@@ -2137,7 +2320,7 @@ function crearZombie() {
 
 
     /*
-     * Zombies un poco más grandes.
+     * Un poco más grande.
      */
 
     zombie.setAttribute(
@@ -2147,61 +2330,108 @@ function crearZombie() {
 
 
     /*
-     * Altura para evitar que queden
-     * enterrados en la plataforma.
+     * La altura se mantiene baja
+     * para que camine sobre la superficie.
      */
 
-    zombie.setAttribute(
-        "position",
-        "0 0 0"
-    );
+    zombie.object3D.position.y =
+        0.1;
 
 
     /*
-     * Elegimos un punto aleatorio
-     * alrededor de la arena.
+     * =========================================================
+     * GENERACIÓN EN 180° FRONTALES
+     *
+     * angle:
+     *
+     * -90° = izquierda
+     *   0° = frente
+     * +90° = derecha
+     *
+     * Nunca generamos detrás.
+     * =========================================================
      */
 
     const angulo =
-        Math.random() *
-        Math.PI * 2;
+        (
+            Math.random() *
+            Math.PI
+        ) -
+        (
+            Math.PI / 2
+        );
+
+
+    const distancia =
+        2.8 +
+        Math.random() * 1.4;
 
 
     /*
-     * Distancia inicial.
+     * Dirección perpendicular
+     * a la dirección frontal.
      */
 
-    const radio =
-        3.2 +
-        Math.random() * 1.0;
+    const lateral =
+        new THREE.Vector3(
+            -direccionFrontal.z,
+            0,
+            direccionFrontal.x
+        );
 
 
-    const x =
-        Math.cos(angulo) *
-        radio;
+    const direccionSpawn =
+        new THREE.Vector3();
 
 
-    const z =
-        Math.sin(angulo) *
-        radio;
-
-
-    zombie.object3D.position.set(
-        x,
-        0.1,
-        z
+    direccionSpawn.copy(
+        direccionFrontal
     );
+
+
+    direccionSpawn.multiplyScalar(
+        Math.cos(angulo)
+    );
+
+
+    lateral.multiplyScalar(
+        Math.sin(angulo)
+    );
+
+
+    direccionSpawn.add(
+        lateral
+    );
+
+
+    direccionSpawn.normalize();
+
+
+    const posicion =
+        direccionSpawn
+            .multiplyScalar(
+                distancia
+            );
+
+
+    zombie.object3D.position.x =
+        posicion.x;
+
+
+    zombie.object3D.position.z =
+        posicion.z;
 
 
     /*
      * Velocidad lenta.
-     *
-     * Aumenta ligeramente con el nivel.
      */
 
     const velocidad =
         0.018 +
-        ((nivelActual - 1) * 0.0015);
+        (
+            (nivelActual - 1) *
+            0.0015
+        );
 
 
     zombie.setAttribute(
@@ -2210,15 +2440,11 @@ function crearZombie() {
             speed:
                 Math.min(
                     velocidad,
-                    0.032
+                    0.030
                 )
         }
     );
 
-
-    /*
-     * Agregar a la arena.
-     */
 
     arena.appendChild(
         zombie
@@ -2233,7 +2459,7 @@ function crearZombie() {
 
 
 /* ================================================================
-   IA DE ZOMBIE
+   IA ZOMBIE
 ================================================================ */
 
 AFRAME.registerComponent(
@@ -2252,9 +2478,6 @@ AFRAME.registerComponent(
 
         init: function() {
 
-            this.atacando =
-                false;
-
             this.ultimoAtaque =
                 0;
 
@@ -2267,7 +2490,7 @@ AFRAME.registerComponent(
         ) {
 
             if (
-                !juegoIniciado ||
+                !juegoActivo ||
                 gameOver
             ) {
 
@@ -2276,57 +2499,51 @@ AFRAME.registerComponent(
             }
 
 
-            if (!this.el.object3D) {
-                return;
-            }
-
-
-            const posicion =
-                this.el.object3D.position;
-
-
-            /*
-             * La posición del jugador
-             * está representada por la cámara.
-             */
-
             const camara =
-                document
-                    .getElementById("camara")
-                    .object3D;
+                document.getElementById(
+                    "camara"
+                ).object3D;
 
 
             /*
-             * Convertimos la posición de la
-             * cámara al espacio de la arena.
+             * Posición de cámara
+             * en coordenadas del mundo.
              */
 
-            const objetivo =
+            const jugador =
                 new THREE.Vector3();
 
 
             camara.getWorldPosition(
-                objetivo
+                jugador
             );
 
 
-            const mundoZombie =
+            /*
+             * Posición del zombie.
+             */
+
+            const zombieWorld =
                 new THREE.Vector3();
 
 
             this.el.object3D.getWorldPosition(
-                mundoZombie
+                zombieWorld
             );
 
 
+            /*
+             * Distancia horizontal.
+             */
+
             const dx =
-                objetivo.x -
-                mundoZombie.x;
+                jugador.x -
+                zombieWorld.x;
 
 
             const dz =
-                objetivo.z -
-                mundoZombie.z;
+                jugador.z -
+                zombieWorld.z;
 
 
             const distancia =
@@ -2337,22 +2554,17 @@ AFRAME.registerComponent(
 
 
             /*
-             * Distancia para atacar.
+             * Ataque.
              */
 
             if (
                 distancia <
-                0.75
+                0.65
             ) {
 
                 const ahora =
                     Date.now();
 
-
-                /*
-                 * Evitar perder varias vidas
-                 * instantáneamente.
-                 */
 
                 if (
                     ahora -
@@ -2363,15 +2575,25 @@ AFRAME.registerComponent(
                     this.ultimoAtaque =
                         ahora;
 
-                    arena.removeChild(
-                        this.el
-                    );
+
+                    if (
+                        this.el.parentNode
+                    ) {
+
+                        this.el.parentNode
+                            .removeChild(
+                                this.el
+                            );
+
+                    }
+
 
                     zombiesVivos =
                         Math.max(
                             0,
                             zombiesVivos - 1
                         );
+
 
                     recibirDaño();
 
@@ -2383,34 +2605,48 @@ AFRAME.registerComponent(
 
 
             /*
-             * Movimiento lento hacia
-             * el jugador.
+             * Movimiento.
              */
 
-            if (distancia > 0.01) {
+            if (
+                distancia >
+                0.01
+            ) {
 
-                posicion.x +=
-                    (dx / distancia) *
+                const factor =
                     this.data.speed *
-                    (delta / 16.67);
+                    (
+                        delta /
+                        16.67
+                    );
 
 
-                posicion.z +=
-                    (dz / distancia) *
-                    this.data.speed *
-                    (delta / 16.67);
+                this.el.object3D.position.x +=
+                    (
+                        dx /
+                        distancia
+                    ) *
+                    factor;
+
+
+                this.el.object3D.position.z +=
+                    (
+                        dz /
+                        distancia
+                    ) *
+                    factor;
 
             }
 
 
             /*
-             * El zombie mira hacia el jugador.
+             * El zombie mira al jugador.
              */
 
             this.el.object3D.lookAt(
-                objetivo.x,
-                posicion.y,
-                objetivo.z
+                jugador.x,
+                this.el.object3D.position.y,
+                jugador.z
             );
 
         }
@@ -2420,13 +2656,13 @@ AFRAME.registerComponent(
 
 
 /* ================================================================
-   DISPARAR
+   DISPARO
 ================================================================ */
 
 function disparar() {
 
     if (
-        !juegoIniciado ||
+        !juegoActivo ||
         gameOver
     ) {
 
@@ -2439,14 +2675,10 @@ function disparar() {
         Date.now();
 
 
-    /*
-     * Pequeño cooldown.
-     */
-
     if (
         ahora -
         ultimoDisparo <
-        250
+        300
     ) {
 
         return;
@@ -2458,50 +2690,20 @@ function disparar() {
         ahora;
 
 
-    sonidoDisparo();
-
-
-    /*
-     * Efecto visual.
-     */
+    reproducirDisparo();
 
     flashDisparo();
 
-
-    /*
-     * Obtener zombies.
-     */
-
-    const zombies =
-        Array.from(
-            document.querySelectorAll(
-                ".zombie"
-            )
-        );
-
-
-    if (
-        zombies.length === 0
-    ) {
-
-        combo = 0;
-
-        return;
-
-    }
-
-
-    /*
-     * Como usamos una mira central,
-     * buscamos el zombie más cercano
-     * a la dirección de la cámara.
-     */
 
     const camara =
         document.getElementById(
             "camara"
         ).object3D;
 
+
+    /*
+     * Dirección hacia donde mira.
+     */
 
     const direccion =
         new THREE.Vector3(
@@ -2516,6 +2718,22 @@ function disparar() {
     );
 
 
+    /*
+     * MUY IMPORTANTE:
+     *
+     * Quitamos Y.
+     *
+     * Esto hace que el disparo se base
+     * en hacia dónde mira horizontalmente
+     * el jugador y no en el ángulo hacia
+     * el suelo.
+     */
+
+    direccion.y = 0;
+
+    direccion.normalize();
+
+
     const origen =
         new THREE.Vector3();
 
@@ -2525,31 +2743,71 @@ function disparar() {
     );
 
 
-    let mejorZombie =
+    const zombies =
+        Array.from(
+            document.querySelectorAll(
+                ".zombie"
+            )
+        );
+
+
+    let objetivo =
         null;
 
 
     let mejorAngulo =
-        0.20;
+        Infinity;
+
+
+    let mejorDistancia =
+        Infinity;
 
 
     zombies.forEach(
         zombie => {
 
-            const pos =
+            const posicion =
                 new THREE.Vector3();
 
 
             zombie.object3D.getWorldPosition(
-                pos
+                posicion
             );
 
 
-            const haciaZombie =
-                pos.clone()
-                    .sub(origen)
-                    .normalize();
+            /*
+             * Vector horizontal.
+             */
 
+            const haciaZombie =
+                posicion
+                    .clone()
+                    .sub(origen);
+
+
+            haciaZombie.y = 0;
+
+
+            const distancia =
+                haciaZombie.length();
+
+
+            if (
+                distancia <
+                0.01
+            ) {
+
+                return;
+
+            }
+
+
+            haciaZombie.normalize();
+
+
+            /*
+             * Ángulo horizontal.
+             */
 
             const angulo =
                 direccion.angleTo(
@@ -2557,16 +2815,67 @@ function disparar() {
                 );
 
 
+            /*
+             * 32 grados de tolerancia.
+             *
+             * Esto hace el juego jugable
+             * sin que el jugador tenga que
+             * apuntar con precisión milimétrica.
+             */
+
+            const tolerancia =
+                THREE.MathUtils.degToRad(
+                    32
+                );
+
+
             if (
-                angulo <
-                mejorAngulo
+                angulo <= tolerancia
             ) {
 
-                mejorAngulo =
-                    angulo;
+                /*
+                 * Primero preferimos
+                 * el que esté más centrado.
+                 */
 
-                mejorZombie =
-                    zombie;
+                if (
+                    angulo <
+                    mejorAngulo
+                ) {
+
+                    mejorAngulo =
+                        angulo;
+
+                    mejorDistancia =
+                        distancia;
+
+                    objetivo =
+                        zombie;
+
+                }
+
+                /*
+                 * Si tienen ángulo parecido,
+                 * elegimos el más cercano.
+                 */
+
+                else if (
+                    Math.abs(
+                        angulo -
+                        mejorAngulo
+                    ) <
+                    0.03 &&
+                    distancia <
+                    mejorDistancia
+                ) {
+
+                    mejorDistancia =
+                        distancia;
+
+                    objetivo =
+                        zombie;
+
+                }
 
             }
 
@@ -2574,10 +2883,10 @@ function disparar() {
     );
 
 
-    if (mejorZombie) {
+    if (objetivo) {
 
         eliminarZombie(
-            mejorZombie
+            objetivo
         );
 
     } else {
@@ -2593,16 +2902,24 @@ function disparar() {
    ELIMINAR ZOMBIE
 ================================================================ */
 
-function eliminarZombie(zombie) {
+function eliminarZombie(
+    zombie
+) {
 
-    if (!zombie.parentNode) {
+    if (
+        !zombie ||
+        !zombie.parentNode
+    ) {
+
         return;
+
     }
 
 
-    zombie.parentNode.removeChild(
-        zombie
-    );
+    zombie.parentNode
+        .removeChild(
+            zombie
+        );
 
 
     zombiesVivos =
@@ -2615,41 +2932,37 @@ function eliminarZombie(zombie) {
     combo++;
 
 
-    let puntosGanados =
+    let ganado =
         10;
 
 
-    /*
-     * Bonus por combo.
-     */
+    if (
+        combo >= 3
+    ) {
 
-    if (combo >= 3) {
-
-        puntosGanados += 5;
+        ganado += 5;
 
     }
 
 
-    /*
-     * Arma mejorada da más puntos.
-     */
+    if (
+        armaNivel >= 2
+    ) {
 
-    if (armaNivel >= 2) {
-
-        puntosGanados += 5;
+        ganado += 5;
 
     }
 
 
     puntos +=
-        puntosGanados;
+        ganado;
 
 
     actualizarHUD();
 
 
     /*
-     * Booster de arma.
+     * Booster arma.
      */
 
     if (
@@ -2660,12 +2973,11 @@ function eliminarZombie(zombie) {
         armaNivel =
             2;
 
+
         mostrarNotificacion(
             "🔫 ¡ARMA MEJORADA!",
             2200
         );
-
-        actualizarHUD();
 
     }
 
@@ -2682,6 +2994,7 @@ function eliminarZombie(zombie) {
         nuclearDisponible =
             true;
 
+
         document.getElementById(
             "btn-nuclear"
         ).style.display =
@@ -2689,30 +3002,26 @@ function eliminarZombie(zombie) {
 
 
         mostrarNotificacion(
-            "☢️ ¡BOMBA NUCLEAR DISPONIBLE!",
+            "☢️ ¡BOMBA NUCLEAR!",
             2500
         );
 
     }
 
 
-    /*
-     * Comprobar nivel.
-     */
-
-    comprobarNivel();
+    comprobarVictoria();
 
 }
 
 
 /* ================================================================
-   COMPROBAR NIVEL
+   VICTORIA
 ================================================================ */
 
-function comprobarNivel() {
+function comprobarVictoria() {
 
     if (
-        modoJuego !== "niveles" ||
+        modo !== "niveles" ||
         gameOver
     ) {
 
@@ -2724,16 +3033,14 @@ function comprobarNivel() {
     if (
         zombiesGenerados >=
         zombiesObjetivo &&
-        zombiesVivos <= 0
+        zombiesVivos === 0
     ) {
 
-        clearInterval(
-            temporizadorJuego
-        );
-
-
-        juegoIniciado =
+        juegoActivo =
             false;
+
+
+        limpiarIntervalos();
 
 
         document.getElementById(
@@ -2742,13 +3049,13 @@ function comprobarNivel() {
             puntos;
 
 
+        controles.style.display =
+            "none";
+
+
         pantallaNivel.classList.add(
             "activa"
         );
-
-
-        controlesJuego.style.display =
-            "none";
 
     }
 
@@ -2761,21 +3068,22 @@ function comprobarNivel() {
 
 function siguienteNivel() {
 
-    sonidoBoton();
+    reproducirBoton();
+
 
     pantallaNivel.classList.remove(
         "activa"
     );
 
 
-    juegoIniciado =
-        true;
-
-
     nivelActual++;
 
 
-    controlesJuego.style.display =
+    juegoActivo =
+        true;
+
+
+    controles.style.display =
         "flex";
 
 
@@ -2793,21 +3101,25 @@ function siguienteNivel() {
 
 function iniciarSupervivencia() {
 
+    limpiarIntervalos();
+
+
     tiempoSupervivencia =
         0;
 
-    ultimoAumentoSupervivencia =
+
+    ultimaHorda =
         0;
 
 
     document.getElementById(
-        "texto-nivel"
+        "nivel"
     ).innerText =
         "SUPERVIVENCIA";
 
 
     /*
-     * Empieza con 3 zombies.
+     * Primera horda.
      */
 
     for (
@@ -2821,16 +3133,12 @@ function iniciarSupervivencia() {
     }
 
 
-    /*
-     * Reloj de supervivencia.
-     */
-
-    temporizadorJuego =
+    intervaloSupervivencia =
         setInterval(
             () => {
 
                 if (
-                    !juegoIniciado ||
+                    !juegoActivo ||
                     gameOver
                 ) {
 
@@ -2844,16 +3152,16 @@ function iniciarSupervivencia() {
 
                 /*
                  * Cada 15 segundos
-                 * aumenta la cantidad.
+                 * aparece una horda.
                  */
 
                 if (
                     tiempoSupervivencia -
-                    ultimoAumentoSupervivencia >=
+                    ultimaHorda >=
                     15
                 ) {
 
-                    ultimoAumentoSupervivencia =
+                    ultimaHorda =
                         tiempoSupervivencia;
 
 
@@ -2877,26 +3185,25 @@ function iniciarSupervivencia() {
 
 
                     mostrarNotificacion(
-                        "⚠️ ¡LLEGÓ OTRA HORDA!",
-                        1600
+                        "⚠️ ¡NUEVA HORDA!",
+                        1500
                     );
 
                 }
 
 
-                /*
-                 * Barra visual.
-                 */
-
                 const porcentaje =
                     (
-                        (tiempoSupervivencia %
-                        15) /
+                        (
+                            tiempoSupervivencia %
+                            15
+                        ) /
                         15
-                    ) * 100;
+                    ) *
+                    100;
 
 
-                progresoSupervivencia.style.width =
+                progreso.style.width =
                     porcentaje + "%";
 
 
@@ -2908,7 +3215,7 @@ function iniciarSupervivencia() {
 
 
 /* ================================================================
-   RECIBIR DAÑO
+   DAÑO
 ================================================================ */
 
 function recibirDaño() {
@@ -2921,7 +3228,8 @@ function recibirDaño() {
     vidas--;
 
 
-    combo = 0;
+    combo =
+        0;
 
 
     actualizarHUD();
@@ -2933,9 +3241,11 @@ function recibirDaño() {
     );
 
 
-    if (vidas <= 0) {
+    if (
+        vidas <= 0
+    ) {
 
-        finalizarJuego();
+        terminarJuego();
 
     }
 
@@ -2946,22 +3256,18 @@ function recibirDaño() {
    GAME OVER
 ================================================================ */
 
-function finalizarJuego() {
+function terminarJuego() {
 
     gameOver =
         true;
 
-    juegoIniciado =
+    juegoActivo =
         false;
 
 
-    clearInterval(
-        temporizadorJuego
-    );
+    limpiarIntervalos();
 
-
-    detenerMusicaFondo();
-
+    detenerFondo();
 
     eliminarTodosLosZombies();
 
@@ -2975,16 +3281,19 @@ function finalizarJuego() {
     hud.style.display =
         "none";
 
+    controles.style.display =
+        "none";
 
-    controlesJuego.style.display =
+    barra.style.display =
+        "none";
+
+    document.getElementById(
+        "mira"
+    ).style.display =
         "none";
 
 
-    barraSupervivencia.style.display =
-        "none";
-
-
-    pantallaMuerte.classList.add(
+    pantallaGameOver.classList.add(
         "activa"
     );
 
@@ -2992,14 +3301,14 @@ function finalizarJuego() {
 
 
 /* ================================================================
-   BOMBA NUCLEAR
+   NUCLEAR
 ================================================================ */
 
 function usarNuclear() {
 
     if (
         !nuclearDisponible ||
-        !juegoIniciado ||
+        !juegoActivo ||
         gameOver
     ) {
 
@@ -3008,7 +3317,7 @@ function usarNuclear() {
     }
 
 
-    sonidoBoton();
+    reproducirBoton();
 
 
     const zombies =
@@ -3026,11 +3335,14 @@ function usarNuclear() {
     zombies.forEach(
         zombie => {
 
-            if (zombie.parentNode) {
+            if (
+                zombie.parentNode
+            ) {
 
-                zombie.parentNode.removeChild(
-                    zombie
-                );
+                zombie.parentNode
+                    .removeChild(
+                        zombie
+                    );
 
             }
 
@@ -3041,11 +3353,6 @@ function usarNuclear() {
     zombiesVivos =
         0;
 
-
-    /*
-     * Cada zombie eliminado
-     * da 15 puntos.
-     */
 
     puntos +=
         cantidad * 15;
@@ -3061,25 +3368,44 @@ function usarNuclear() {
         "none";
 
 
-    mostrarNotificacion(
-        "☢️ ¡ATAQUE NUCLEAR!",
-        2500
-    );
+    actualizarHUD();
 
 
     flashNuclear();
 
 
-    actualizarHUD();
+    mostrarNotificacion(
+        "☢️ ¡ATAQUE NUCLEAR!",
+        2300
+    );
 
 
-    comprobarNivel();
+    comprobarVictoria();
 
 }
 
 
 /* ================================================================
-   ELIMINAR TODOS
+   REINICIAR
+================================================================ */
+
+function reiniciar() {
+
+    reproducirBoton();
+
+
+    pantallaGameOver.classList.remove(
+        "activa"
+    );
+
+
+    comenzarPartida();
+
+}
+
+
+/* ================================================================
+   ELIMINAR ZOMBIES
 ================================================================ */
 
 function eliminarTodosLosZombies() {
@@ -3095,9 +3421,10 @@ function eliminarTodosLosZombies() {
                     zombie.parentNode
                 ) {
 
-                    zombie.parentNode.removeChild(
-                        zombie
-                    );
+                    zombie.parentNode
+                        .removeChild(
+                            zombie
+                        );
 
                 }
 
@@ -3107,6 +3434,42 @@ function eliminarTodosLosZombies() {
 
     zombiesVivos =
         0;
+
+}
+
+
+/* ================================================================
+   INTERVALOS
+================================================================ */
+
+function limpiarIntervalos() {
+
+    if (
+        intervaloNivel
+    ) {
+
+        clearInterval(
+            intervaloNivel
+        );
+
+        intervaloNivel =
+            null;
+
+    }
+
+
+    if (
+        intervaloSupervivencia
+    ) {
+
+        clearInterval(
+            intervaloSupervivencia
+        );
+
+        intervaloSupervivencia =
+            null;
+
+    }
 
 }
 
@@ -3130,213 +3493,136 @@ function actualizarHUD() {
 
 
     document.getElementById(
-        "texto-nivel"
+        "nivel"
     ).innerText =
-        modoJuego === "niveles"
+        modo === "niveles"
             ? "NIVEL " + nivelActual
             : "SUPERVIVENCIA";
 
 
     document.getElementById(
-        "arma-hud"
+        "arma"
     ).innerText =
-        "🔫 ARMA " + armaNivel;
+        "🔫 ARMA " +
+        armaNivel;
 
 
-    if (nuclearDisponible) {
-
-        document.getElementById(
-            "booster-hud"
-        ).innerText =
-            "☢️ NUCLEAR LISTO";
-
-    } else if (armaNivel >= 2) {
-
-        document.getElementById(
-            "booster-hud"
-        ).innerText =
-            "⚡ ARMA MEJORADA";
-
-    } else {
-
-        document.getElementById(
-            "booster-hud"
-        ).innerText =
-            "Sin booster";
-
-    }
+    document.getElementById(
+        "booster"
+    ).innerText =
+        nuclearDisponible
+            ? "☢️ NUCLEAR LISTO"
+            : armaNivel >= 2
+                ? "⚡ ARMA MEJORADA"
+                : "Sin booster";
 
 }
 
 
 /* ================================================================
-   FLASH DE DISPARO
+   FLASH
 ================================================================ */
 
 function flashDisparo() {
 
-    const flash =
-        document.getElementById(
-            "flash"
-        );
-
-
     flash.style.opacity =
-        "0.12";
+        ".10";
 
 
-    setTimeout(() => {
+    setTimeout(
+        () => {
 
-        flash.style.opacity =
-            "0";
+            flash.style.opacity =
+                "0";
 
-    }, 50);
+        },
+        45
+    );
 
 }
 
-
-/* ================================================================
-   FLASH NUCLEAR
-================================================================ */
 
 function flashNuclear() {
 
-    const flash =
-        document.getElementById(
-            "flash"
-        );
-
-
-    flash.style.transition =
-        "opacity 0.1s";
-
-
     flash.style.opacity =
-        "0.9";
+        ".9";
 
 
-    setTimeout(() => {
+    setTimeout(
+        () => {
 
-        flash.style.opacity =
-            "0";
+            flash.style.opacity =
+                "0";
 
-    }, 120);
-
-
-    setTimeout(() => {
-
-        flash.style.opacity =
-            "0.5";
-
-    }, 180);
-
-
-    setTimeout(() => {
-
-        flash.style.opacity =
-            "0";
-
-    }, 300);
-
-}
-
-
-/* ================================================================
-   REINICIAR
-================================================================ */
-
-function reiniciarJuego() {
-
-    sonidoBoton();
-
-    pantallaMuerte.classList.remove(
-        "activa"
+        },
+        120
     );
 
 
-    puntos =
-        0;
+    setTimeout(
+        () => {
 
-    vidas =
-        3;
+            flash.style.opacity =
+                ".5";
 
-    nivelActual =
-        1;
-
-    armaNivel =
-        1;
-
-    nuclearDisponible =
-        false;
-
-    combo =
-        0;
-
-    zombiesVivos =
-        0;
-
-    zombiesGenerados =
-        0;
-
-    tiempoSupervivencia =
-        0;
-
-
-    gameOver =
-        false;
-
-
-    actualizarHUD();
-
-
-    /*
-     * La zona ya está colocada.
-     * Por eso reiniciamos directamente
-     * la partida.
-     */
-
-    comenzarPartida();
-
-}
-
-
-/* ================================================================
-   VOLVER AL MENÚ
-================================================================ */
-
-function volverMenu() {
-
-    sonidoBoton();
-
-    gameOver =
-        true;
-
-    juegoIniciado =
-        false;
-
-
-    clearInterval(
-        temporizadorJuego
+        },
+        180
     );
 
 
-    detenerMusicaFondo();
+    setTimeout(
+        () => {
 
+            flash.style.opacity =
+                "0";
 
-    eliminarTodosLosZombies();
-
-
-    mostrarMenu();
+        },
+        300
+    );
 
 }
 
 
 /* ================================================================
-   EVENTOS DE BOTONES
+   NOTIFICACION
+================================================================ */
+
+function mostrarNotificacion(
+    texto,
+    tiempo = 1500
+) {
+
+    notificacion.innerText =
+        texto;
+
+
+    notificacion.classList.add(
+        "visible"
+    );
+
+
+    setTimeout(
+        () => {
+
+            notificacion.classList.remove(
+                "visible"
+            );
+
+        },
+        tiempo
+    );
+
+}
+
+
+/* ================================================================
+   EVENTOS
 ================================================================ */
 
 document
-    .getElementById("btn-modo-niveles")
+    .getElementById(
+        "btn-niveles"
+    )
     .addEventListener(
         "click",
         () => {
@@ -3350,7 +3636,9 @@ document
 
 
 document
-    .getElementById("btn-modo-supervivencia")
+    .getElementById(
+        "btn-supervivencia"
+    )
     .addEventListener(
         "click",
         () => {
@@ -3364,23 +3652,19 @@ document
 
 
 document
-    .getElementById("btn-entrar-ar")
+    .getElementById(
+        "btn-entrar-ar"
+    )
     .addEventListener(
         "click",
-        entrarEnAR
+        comenzarMapeo
     );
 
 
 document
-    .getElementById("btn-colocar")
-    .addEventListener(
-        "click",
-        colocarArena
-    );
-
-
-document
-    .getElementById("btn-comenzar")
+    .getElementById(
+        "btn-comenzar"
+    )
     .addEventListener(
         "click",
         comenzarPartida
@@ -3388,7 +3672,19 @@ document
 
 
 document
-    .getElementById("btn-disparar")
+    .getElementById(
+        "btn-volver"
+    )
+    .addEventListener(
+        "click",
+        volverMenu
+    );
+
+
+document
+    .getElementById(
+        "btn-disparar"
+    )
     .addEventListener(
         "click",
         disparar
@@ -3396,7 +3692,9 @@ document
 
 
 document
-    .getElementById("btn-nuclear")
+    .getElementById(
+        "btn-nuclear"
+    )
     .addEventListener(
         "click",
         usarNuclear
@@ -3404,7 +3702,9 @@ document
 
 
 document
-    .getElementById("btn-siguiente-nivel")
+    .getElementById(
+        "btn-siguiente"
+    )
     .addEventListener(
         "click",
         siguienteNivel
@@ -3412,23 +3712,19 @@ document
 
 
 document
-    .getElementById("btn-reiniciar")
+    .getElementById(
+        "btn-reiniciar"
+    )
     .addEventListener(
         "click",
-        reiniciarJuego
+        reiniciar
     );
 
 
 document
-    .getElementById("btn-menu-final")
-    .addEventListener(
-        "click",
-        volverMenu
-    );
-
-
-document
-    .getElementById("btn-volver-menu")
+    .getElementById(
+        "btn-menu-final"
+    )
     .addEventListener(
         "click",
         volverMenu
@@ -3436,7 +3732,7 @@ document
 
 
 /* ================================================================
-   TOQUE DIRECTO EN PANTALLA PARA COLOCAR
+   TOCAR PANTALLA PARA COLOCAR
 ================================================================ */
 
 document.addEventListener(
@@ -3445,18 +3741,13 @@ document.addEventListener(
 
         if (
             arActivo &&
-            !zonaColocada &&
-            reticuloEncontrado
+            superficieDetectada &&
+            !zonaColocada
         ) {
-
-            /*
-             * Si el toque ocurre sobre el panel,
-             * no colocar.
-             */
 
             if (
                 event.target.closest(
-                    ".mapeo-panel"
+                    ".panel-mapeo"
                 )
             ) {
 
@@ -3471,13 +3762,13 @@ document.addEventListener(
 
     },
     {
-        passive: true
+        passive:true
     }
 );
 
 
 /* ================================================================
-   TECLADO PARA PRUEBAS EN PC
+   TECLADO PARA PRUEBAS
 ================================================================ */
 
 document.addEventListener(
@@ -3496,8 +3787,7 @@ document.addEventListener(
 
 
         if (
-            event.key.toLowerCase() ===
-            "n"
+            event.key.toLowerCase() === "n"
         ) {
 
             usarNuclear();
@@ -3509,31 +3799,7 @@ document.addEventListener(
 
 
 /* ================================================================
-   CUANDO A-FRAME TERMINA DE CARGAR
-================================================================ */
-
-escena.addEventListener(
-    "loaded",
-    () => {
-
-        console.log(
-            "Zombie AR cargado correctamente."
-        );
-
-
-        console.log(
-            "Modelo:",
-            document.getElementById(
-                "modelo-zombie"
-            )
-        );
-
-    }
-);
-
-
-/* ================================================================
-   CUANDO TERMINA LA SESIÓN AR
+   SALIR DE AR
 ================================================================ */
 
 escena.addEventListener(
@@ -3543,27 +3809,19 @@ escena.addEventListener(
         arActivo =
             false;
 
-        reticulo3D.setAttribute(
-            "visible",
-            false
-        );
 
-        reticuloMapeo.classList.remove(
-            "visible"
-        );
+        hitTestSource =
+            null;
 
 
-        /*
-         * Si ya estamos jugando,
-         * detenemos el juego.
-         */
+        hitTestSourceRequested =
+            false;
 
-        if (juegoIniciado) {
 
-            juegoIniciado =
-                false;
+        if (!juegoActivo) {
 
-            detenerMusicaFondo();
+            reticulo.style.display =
+                "none";
 
         }
 
@@ -3574,3 +3832,4 @@ escena.addEventListener(
 
 </body>
 </html>
+```
