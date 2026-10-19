@@ -1693,6 +1693,22 @@
         </div>
 
 
+        <div class="hud-card">
+
+          <span class="hud-label">
+            Racha
+          </span>
+
+          <span
+            id="streakValue"
+            class="hud-value"
+          >
+            🔥 0
+          </span>
+
+        </div>
+
+
       </div>
 
 
@@ -1868,6 +1884,22 @@
         </div>
 
 
+        <div class="stat">
+
+          <div
+            id="finalBestStreak"
+            class="stat-number"
+          >
+            0
+          </div>
+
+          <div class="stat-label">
+            Mejor racha
+          </div>
+
+        </div>
+
+
       </div>
 
 
@@ -1911,6 +1943,13 @@
 
 
   <audio
+    id="deathSound"
+    src="muerte.mp3"
+    preload="auto"
+  ></audio>
+
+
+  <audio
     id="backgroundMusic"
     src="fondo.mp3"
     preload="auto"
@@ -1942,6 +1981,10 @@
       lives: 3,
 
       kills: 0,
+
+      streak: 0,
+
+      bestStreak: 0,
 
       zombiesSpawned: 0,
 
@@ -2102,6 +2145,12 @@
       );
 
 
+    const streakValue =
+      document.getElementById(
+        "streakValue"
+      );
+
+
     const levelCard =
       document.getElementById(
         "levelCard"
@@ -2144,6 +2193,12 @@
       );
 
 
+    const finalBestStreak =
+      document.getElementById(
+        "finalBestStreak"
+      );
+
+
     /* =====================================================
        AUDIO
     ====================================================== */
@@ -2157,6 +2212,12 @@
     const shootSound =
       document.getElementById(
         "shootSound"
+      );
+
+
+    const deathSound =
+      document.getElementById(
+        "deathSound"
       );
 
 
@@ -2192,6 +2253,27 @@
           0;
 
         shootSound
+          .play()
+          .catch(
+            () => {}
+          );
+
+      } catch (e) {}
+
+    }
+
+
+    function playDeathSound() {
+
+      try {
+
+        deathSound.currentTime =
+          0;
+
+        deathSound.volume =
+          0.65;
+
+        deathSound
           .play()
           .catch(
             () => {}
@@ -2973,6 +3055,14 @@
 
 
       GAME.kills =
+        0;
+
+
+      GAME.streak =
+        0;
+
+
+      GAME.bestStreak =
         0;
 
 
@@ -3925,6 +4015,29 @@
       );
 
 
+      /*
+       * =================================================
+       * RACHA Y SONIDO DE ELIMINACIÓN
+       *
+       * Cada eliminación consecutiva aumenta la racha.
+       * La racha solo se reinicia cuando un zombie alcanza
+       * al jugador.
+       * =================================================
+       */
+
+      playDeathSound();
+
+
+      GAME.streak++;
+
+
+      GAME.bestStreak =
+        Math.max(
+          GAME.bestStreak,
+          GAME.streak
+        );
+
+
       let points =
         10;
 
@@ -3947,6 +4060,51 @@
           2;
 
       }
+
+
+      /*
+       * Bonificaciones reales de racha:
+       * x3  = +5
+       * x5  = +10
+       * x10 = +20
+       *
+       * Se entrega únicamente al alcanzar el hito,
+       * evitando sumar el mismo bonus repetidamente.
+       */
+
+      let streakBonus =
+        0;
+
+
+      if (
+        GAME.streak >= 10 &&
+        GAME.streak % 10 === 0
+      ) {
+
+        streakBonus =
+          20;
+
+      } else if (
+        GAME.streak >= 5 &&
+        GAME.streak % 5 === 0
+      ) {
+
+        streakBonus =
+          10;
+
+      } else if (
+        GAME.streak >= 3 &&
+        GAME.streak % 3 === 0
+      ) {
+
+        streakBonus =
+          5;
+
+      }
+
+
+      points +=
+        streakBonus;
 
 
       GAME.score +=
@@ -3976,10 +4134,25 @@
       );
 
 
-      showMessage(
-        "+" +
-        points
-      );
+      if (
+        streakBonus > 0
+      ) {
+
+        showMessage(
+          "🔥 RACHA x" +
+          GAME.streak +
+          "  +" +
+          streakBonus
+        );
+
+      } else {
+
+        showMessage(
+          "+" +
+          points
+        );
+
+      }
 
 
       if (
@@ -4048,8 +4221,33 @@
       GAME.lives--;
 
 
+      /*
+       * Recibir daño rompe la racha.
+       */
+      GAME.streak =
+        0;
+
+
       showMessage(
-        "¡Te alcanzó un zombie!"
+        "💥 ¡Racha perdida!"
+      );
+
+
+      setTimeout(
+        function () {
+
+          if (
+            GAME.running
+          ) {
+
+            showMessage(
+              "¡Te alcanzó un zombie!"
+            );
+
+          }
+
+        },
+        700
       );
 
 
@@ -4356,6 +4554,26 @@
         ).length;
 
 
+      streakValue.textContent =
+        "🔥 " +
+        GAME.streak;
+
+
+      if (
+        GAME.streak >= 10
+      ) {
+
+        streakValue.style.fontWeight =
+          "900";
+
+      } else {
+
+        streakValue.style.fontWeight =
+          "700";
+
+      }
+
+
       weaponBooster.disabled =
         !GAME.weaponBoosterReady;
 
@@ -4566,6 +4784,10 @@
       finalTime.textContent =
         GAME.survivalTime +
         "s";
+
+
+      finalBestStreak.textContent =
+        GAME.bestStreak;
 
 
       gameOverScreen.classList.remove(
