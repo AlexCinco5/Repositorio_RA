@@ -1,23 +1,24 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
 
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-  >
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
 
   <title>Supervivencia AR</title>
 
-  <!-- A-FRAME -->
+  <!-- =========================================================
+       A-FRAME
+  ========================================================== -->
   <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
 
+  <!-- =========================================================
+       ESTILOS
+  ========================================================== -->
   <style>
-
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
@@ -25,1344 +26,2244 @@
 
     html,
     body {
-      width: 100%;
-      height: 100%;
       margin: 0;
       padding: 0;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
       background: #050505;
       font-family: Arial, Helvetica, sans-serif;
+      color: white;
       touch-action: manipulation;
     }
 
     body {
-      color: white;
+      position: relative;
     }
 
-    /* =====================================================
-       CÁMARA FALLBACK
-       ===================================================== */
+    /* =========================================================
+       VIDEO DE CÁMARA
+    ========================================================== */
 
     #cameraVideo {
       position: fixed;
       inset: 0;
-
       width: 100%;
       height: 100%;
-
       object-fit: cover;
-
       background: #000;
-
       z-index: 0;
-
       display: none;
     }
 
-    /* =====================================================
-       A-FRAME
-       ===================================================== */
+    /* =========================================================
+       ESCENA A-FRAME
+    ========================================================== */
 
-    a-scene {
-      position: fixed !important;
+    #scene {
+      position: fixed;
       inset: 0;
-
       z-index: 1;
     }
 
-    /* =====================================================
-       PANTALLAS PRINCIPALES
-       ===================================================== */
+    .a-canvas {
+      z-index: 1 !important;
+    }
+
+    /* =========================================================
+       UI GENERAL
+    ========================================================== */
 
     .screen {
-
       position: fixed;
-
       inset: 0;
-
-      z-index: 1000;
+      z-index: 20;
 
       display: flex;
-
-      align-items: center;
+      flex-direction: column;
       justify-content: center;
+      align-items: center;
 
-      padding: 20px;
+      padding: 24px;
 
       background:
         radial-gradient(
-          circle at 50% 35%,
-          rgba(100, 0, 0, .30),
-          rgba(0, 0, 0, .96) 72%
+          circle at center,
+          rgba(30, 30, 30, 0.60),
+          rgba(0, 0, 0, 0.94)
         );
 
-    }
-
-    .panel {
-
-      width: min(94vw, 540px);
-
-      max-height: 92vh;
-
-      overflow-y: auto;
-
-      padding: 30px 24px;
-
-      border-radius: 26px;
-
-      background:
-        linear-gradient(
-          180deg,
-          rgba(25,25,25,.96),
-          rgba(8,8,8,.96)
-        );
-
-      border: 1px solid rgba(255,255,255,.12);
-
-      box-shadow:
-        0 25px 80px rgba(0,0,0,.80),
-        inset 0 1px 0 rgba(255,255,255,.04);
-
-      text-align: center;
-
-      backdrop-filter: blur(16px);
-
-    }
-
-    .logo {
-
-      font-size: clamp(38px, 10vw, 62px);
-
-      line-height: .95;
-
-      margin-bottom: 8px;
-
-      font-weight: 900;
-
-      letter-spacing: 3px;
-
-      text-shadow:
-        0 0 20px rgba(255,0,0,.45);
-
-    }
-
-    .logo span {
-
-      display: block;
-
-      font-size: .34em;
-
-      letter-spacing: 5px;
-
-      color: #aaa;
-
-      margin-top: 12px;
-
-    }
-
-    .subtitle {
-
-      color: #aaa;
-
-      margin: 15px 0 25px;
-
-      line-height: 1.5;
-
-    }
-
-    /* =====================================================
-       ESTADO
-       ===================================================== */
-
-    .status {
-
-      padding: 13px 14px;
-
-      border-radius: 13px;
-
-      margin: 12px 0 18px;
-
-      background: rgba(255,255,255,.055);
-
-      color: #ddd;
-
-      font-size: 13px;
-
-      line-height: 1.45;
-
-    }
-
-    .status.ok {
-
-      background: rgba(0,170,70,.13);
-
-      color: #9dffba;
-
-      border: 1px solid rgba(0,255,100,.10);
-
-    }
-
-    .status.warning {
-
-      background: rgba(220,150,0,.12);
-
-      color: #ffe09a;
-
-      border: 1px solid rgba(255,180,0,.10);
-
-    }
-
-    /* =====================================================
-       MODOS
-       ===================================================== */
-
-    .mode-title {
-
-      text-align: left;
-
-      font-size: 12px;
-
-      color: #888;
-
-      text-transform: uppercase;
-
-      letter-spacing: 2px;
-
-      margin: 20px 0 8px;
-
-    }
-
-    .mode-grid {
-
-      display: grid;
-
-      grid-template-columns: 1fr 1fr;
-
-      gap: 12px;
-
-    }
-
-    .mode-card {
-
-      min-height: 118px;
-
-      padding: 16px;
-
-      border-radius: 17px;
-
-      background: #151515;
-
-      border: 1px solid rgba(255,255,255,.08);
-
-      color: white;
-
-      cursor: pointer;
-
-      transition: .18s ease;
-
-    }
-
-    .mode-card:active {
-
-      transform: scale(.97);
-
-    }
-
-    .mode-card.selected {
-
-      border-color: rgba(255,40,40,.85);
-
-      background:
-        linear-gradient(
-          145deg,
-          rgba(160,0,0,.40),
-          rgba(30,0,0,.55)
-        );
-
-      box-shadow:
-        0 0 25px rgba(255,0,0,.14);
-
-    }
-
-    .mode-icon {
-
-      font-size: 34px;
-
-      margin-bottom: 7px;
-
-    }
-
-    .mode-name {
-
-      font-weight: bold;
-
-      font-size: 15px;
-
-    }
-
-    .mode-desc {
-
-      color: #888;
-
-      font-size: 11px;
-
-      margin-top: 5px;
-
-      line-height: 1.35;
-
-    }
-
-    /* =====================================================
-       BOTONES
-       ===================================================== */
-
-    button {
-
-      width: 100%;
-
-      min-height: 56px;
-
-      border: 0;
-
-      border-radius: 15px;
-
-      margin-top: 13px;
-
-      background:
-        linear-gradient(
-          135deg,
-          #ff3038,
-          #a50000
-        );
-
-      color: white;
-
-      font-size: 16px;
-
-      font-weight: 800;
-
-      letter-spacing: .5px;
-
-      cursor: pointer;
-
-      box-shadow:
-        0 9px 25px rgba(255,0,0,.20);
-
-    }
-
-    button:active {
-
-      transform: scale(.98);
-
-    }
-
-    button.secondary {
-
-      background: #202020;
-
-      box-shadow: none;
-
-      color: #ddd;
-
-    }
-
-    button:disabled {
-
-      opacity: .45;
-
+      backdrop-filter: blur(4px);
     }
 
     .hidden {
-
       display: none !important;
-
     }
 
-    /* =====================================================
-       CALIBRACIÓN
-       ===================================================== */
+    .panel {
+      width: min(92vw, 600px);
 
-    #calibration {
-
-      position: fixed;
-
-      inset: 0;
-
-      z-index: 900;
-
-      display: none;
-
-      align-items: center;
-
-      justify-content: center;
-
-      background:
-        rgba(0,0,0,.38);
-
-      backdrop-filter: blur(5px);
-
-    }
-
-    .calibration-panel {
-
-      width: min(88vw, 430px);
-
-      padding: 28px 22px;
+      padding: 28px;
 
       border-radius: 24px;
 
       background:
-        rgba(8,8,8,.88);
+        linear-gradient(
+          145deg,
+          rgba(30, 30, 30, 0.95),
+          rgba(8, 8, 8, 0.95)
+        );
 
-      border:
-        1px solid rgba(255,255,255,.10);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+
+      box-shadow:
+        0 25px 80px rgba(0, 0, 0, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+      text-align: center;
+    }
+
+    .title {
+      margin: 0 0 8px;
+
+      font-size: clamp(32px, 8vw, 56px);
+      font-weight: 900;
+      letter-spacing: -2px;
+
+      text-shadow:
+        0 3px 15px rgba(255, 0, 0, 0.3);
+    }
+
+    .subtitle {
+      margin: 0 0 25px;
+
+      color: #aaa;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .section-title {
+      margin: 22px 0 12px;
+
+      font-size: 13px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+
+      color: #888;
+    }
+
+    /* =========================================================
+       BOTONES
+    ========================================================== */
+
+    .btn {
+      width: 100%;
+
+      min-height: 54px;
+
+      border: none;
+      border-radius: 14px;
+
+      margin-top: 10px;
+
+      padding: 14px 20px;
+
+      color: white;
+      background: #222;
+
+      font-size: 16px;
+      font-weight: 800;
+
+      cursor: pointer;
+
+      transition:
+        transform 0.12s ease,
+        background 0.12s ease,
+        box-shadow 0.12s ease;
+    }
+
+    .btn:active {
+      transform: scale(0.96);
+    }
+
+    .btn-primary {
+      background: linear-gradient(
+        135deg,
+        #ff3b30,
+        #b40000
+      );
+
+      box-shadow:
+        0 10px 30px rgba(255, 0, 0, 0.22);
+    }
+
+    .btn-secondary {
+      background: #191919;
+      border: 1px solid #333;
+    }
+
+    .btn-danger {
+      background: #9e0000;
+    }
+
+    /* =========================================================
+       MODOS DE JUEGO
+    ========================================================== */
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+
+      gap: 12px;
+
+      margin-top: 10px;
+    }
+
+    .mode-card {
+      min-height: 150px;
+
+      padding: 20px;
+
+      border-radius: 18px;
+
+      background: #151515;
+
+      border: 2px solid #292929;
+
+      cursor: pointer;
+
+      transition:
+        border-color 0.15s ease,
+        transform 0.15s ease,
+        background 0.15s ease;
+    }
+
+    .mode-card:active {
+      transform: scale(0.97);
+    }
+
+    .mode-card.selected {
+      border-color: #ff3b30;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 59, 48, 0.16),
+          rgba(80, 0, 0, 0.18)
+        );
+    }
+
+    .mode-icon {
+      font-size: 42px;
+      margin-bottom: 8px;
+    }
+
+    .mode-name {
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .mode-description {
+      margin-top: 7px;
+
+      color: #888;
+
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    /* =========================================================
+       INSTRUCCIONES
+    ========================================================== */
+
+    .instructions {
+      display: grid;
+
+      gap: 10px;
+
+      text-align: left;
+
+      margin: 18px 0;
+    }
+
+    .instruction {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+
+      padding: 11px 13px;
+
+      border-radius: 12px;
+
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .instruction-icon {
+      width: 35px;
+      height: 35px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 10px;
+
+      background: #252525;
+
+      font-size: 18px;
+    }
+
+    .instruction-text {
+      font-size: 13px;
+      line-height: 1.35;
+
+      color: #ccc;
+    }
+
+    /* =========================================================
+       CALIBRACIÓN
+    ========================================================== */
+
+    #calibrationScreen {
+      background:
+        radial-gradient(
+          circle at center,
+          rgba(0, 0, 0, 0.30),
+          rgba(0, 0, 0, 0.85)
+        );
+    }
+
+    .calibration-box {
+      width: min(90vw, 450px);
 
       text-align: center;
 
-      box-shadow:
-        0 25px 80px rgba(0,0,0,.65);
+      padding: 30px;
 
+      border-radius: 25px;
+
+      background: rgba(10, 10, 10, 0.82);
+
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
-    .scan {
+    .calibration-icon {
+      font-size: 70px;
 
-      width: 125px;
+      margin-bottom: 15px;
 
-      height: 125px;
-
-      margin: 20px auto;
-
-      border-radius: 50%;
-
-      border:
-        2px dashed rgba(255,255,255,.65);
-
-      animation:
-        scanPulse 1.6s ease-in-out infinite;
-
-      position: relative;
-
+      animation: pulse 1.5s infinite;
     }
 
-    .scan::after {
-
-      content: "";
-
-      position: absolute;
-
-      left: 12%;
-
-      right: 12%;
-
-      top: 50%;
-
-      height: 2px;
-
-      background: #ff3038;
-
-      box-shadow:
-        0 0 12px #ff3038;
-
-    }
-
-    @keyframes scanPulse {
-
-      0%,100% {
-        transform: scale(.92);
-        opacity: .55;
+    @keyframes pulse {
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 0.8;
       }
 
       50% {
-        transform: scale(1.04);
+        transform: scale(1.08);
         opacity: 1;
       }
-
     }
 
-    /* =====================================================
+    /* =========================================================
        HUD
-       ===================================================== */
+    ========================================================== */
 
     #hud {
-
       position: fixed;
+      inset: 0;
 
-      left: 0;
-      right: 0;
-
-      top: env(safe-area-inset-top, 0px);
-
-      z-index: 50;
-
-      display: none;
-
-      padding: 12px;
+      z-index: 10;
 
       pointer-events: none;
-
     }
 
-    .hud {
+    .hud-top {
+      position: absolute;
 
-      display: grid;
+      top: env(safe-area-inset-top, 12px);
+      left: 12px;
+      right: 12px;
 
-      grid-template-columns:
-        1fr
-        1fr
-        1fr;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
 
+      gap: 10px;
+    }
+
+    .hud-group {
+      display: flex;
       gap: 8px;
-
-      width: min(94vw, 600px);
-
-      margin: 0 auto;
-
+      flex-wrap: wrap;
     }
 
-    .hud-box {
+    .hud-card {
+      min-width: 82px;
 
-      padding: 9px 8px;
+      padding: 9px 12px;
 
-      border-radius: 13px;
+      border-radius: 12px;
 
-      background:
-        rgba(0,0,0,.67);
+      background: rgba(0, 0, 0, 0.65);
 
-      border:
-        1px solid rgba(255,255,255,.10);
+      border: 1px solid rgba(255, 255, 255, 0.12);
 
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(5px);
 
       text-align: center;
-
-      color: #aaa;
-
-      font-size: 10px;
-
-      letter-spacing: 1px;
-
     }
 
-    .hud-box strong {
-
+    .hud-label {
       display: block;
 
-      color: white;
+      font-size: 9px;
+      text-transform: uppercase;
 
-      font-size: 19px;
+      color: #777;
 
-      margin-top: 3px;
-
-      letter-spacing: 0;
-
+      letter-spacing: 1px;
     }
 
-    /* =====================================================
-       MIRA
-       ===================================================== */
+    .hud-value {
+      display: block;
+
+      margin-top: 2px;
+
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    /* =========================================================
+       PUNTERO
+    ========================================================== */
 
     #crosshair {
-
       position: fixed;
 
       left: 50%;
       top: 50%;
 
-      width: 65px;
-      height: 65px;
+      width: 44px;
+      height: 44px;
 
-      transform:
-        translate(-50%, -50%);
+      transform: translate(-50%, -50%);
 
-      z-index: 40;
+      z-index: 12;
 
-      display: none;
+      pointer-events: auto;
 
-      pointer-events: none;
-
+      cursor: pointer;
     }
 
     #crosshair::before,
     #crosshair::after {
-
       content: "";
 
       position: absolute;
 
-      background: rgba(255,255,255,.88);
+      background: rgba(255, 255, 255, 0.92);
 
       box-shadow:
-        0 0 8px rgba(255,0,0,.85);
-
+        0 0 6px rgba(0, 0, 0, 0.9);
     }
 
     #crosshair::before {
-
       width: 2px;
+      height: 44px;
 
-      height: 65px;
-
-      left: 31px;
-
+      left: 21px;
       top: 0;
-
     }
 
     #crosshair::after {
-
-      width: 65px;
-
+      width: 44px;
       height: 2px;
 
       left: 0;
-
-      top: 31px;
-
+      top: 21px;
     }
 
-    .cross-dot {
-
+    .crosshair-center {
       position: absolute;
 
-      width: 8px;
+      left: 50%;
+      top: 50%;
 
-      height: 8px;
+      width: 7px;
+      height: 7px;
+
+      transform: translate(-50%, -50%);
 
       border-radius: 50%;
 
-      background: #ff3038;
+      background: #ff3b30;
 
-      left: 28px;
-
-      top: 28px;
-
-      box-shadow:
-        0 0 12px #ff3038;
-
+      box-shadow: 0 0 8px rgba(255, 59, 48, 0.8);
     }
 
-    /* =====================================================
-       BOTÓN DISPARO
-       ===================================================== */
+    /* =========================================================
+       BOTÓN DISPARAR
+    ========================================================== */
 
     #shootButton {
-
       position: fixed;
 
-      right: 22px;
+      right: 25px;
+      bottom: calc(
+        25px + env(safe-area-inset-bottom, 0px)
+      );
 
-      bottom:
-        calc(
-          24px +
-          env(safe-area-inset-bottom)
-        );
-
-      z-index: 80;
+      z-index: 15;
 
       width: 92px;
       height: 92px;
 
-      min-height: 92px;
-
-      margin: 0;
-
-      padding: 0;
-
       border-radius: 50%;
 
-      display: none;
-
-      align-items: center;
-      justify-content: center;
-
-      flex-direction: column;
+      border: 4px solid rgba(255, 255, 255, 0.75);
 
       background:
         radial-gradient(
           circle,
-          #ff4048,
-          #a00000
+          #ff3b30,
+          #8e0000
         );
-
-      border:
-        3px solid rgba(255,255,255,.78);
 
       box-shadow:
-        0 0 28px rgba(255,0,0,.38);
-
-      font-size: 14px;
-
-      touch-action: manipulation;
-
-    }
-
-    #shootButton .gun {
-
-      font-size: 28px;
-
-      line-height: 1;
-
-      margin-bottom: 4px;
-
-    }
-
-    #shootButton:active {
-
-      transform: scale(.88);
-
-    }
-
-    /* =====================================================
-       MENSAJES
-       ===================================================== */
-
-    #message {
-
-      position: fixed;
-
-      left: 50%;
-
-      top: 72%;
-
-      transform:
-        translate(-50%, -50%);
-
-      z-index: 90;
-
-      padding: 12px 18px;
-
-      border-radius: 13px;
-
-      background:
-        rgba(0,0,0,.80);
-
-      border:
-        1px solid rgba(255,255,255,.10);
+        0 8px 30px rgba(0, 0, 0, 0.6),
+        0 0 25px rgba(255, 0, 0, 0.35);
 
       color: white;
 
-      text-align: center;
+      font-size: 13px;
+      font-weight: 900;
 
-      font-size: 14px;
-
-      max-width: 86vw;
-
-      pointer-events: none;
-
-      opacity: 0;
-
-      transition: opacity .18s;
-
-    }
-
-    #message.show {
-
-      opacity: 1;
-
-    }
-
-    /* =====================================================
-       BOOSTERS
-       ===================================================== */
-
-    #boosters {
-
-      position: fixed;
-
-      left: 14px;
-
-      bottom:
-        calc(
-          20px +
-          env(safe-area-inset-bottom)
-        );
-
-      z-index: 70;
-
-      display: none;
-
-      gap: 8px;
-
-    }
-
-    .booster {
-
-      width: 58px;
-      height: 58px;
-
-      border-radius: 14px;
-
-      background:
-        rgba(0,0,0,.72);
-
-      border:
-        1px solid rgba(255,255,255,.15);
-
-      color: white;
-
-      font-size: 11px;
-
-      text-align: center;
-
-      display: flex;
-
-      align-items: center;
-      justify-content: center;
-
-      flex-direction: column;
+      pointer-events: auto;
 
       cursor: pointer;
 
-      margin: 0;
+      user-select: none;
 
-      min-height: 58px;
-
-      box-shadow: none;
-
+      touch-action: manipulation;
     }
 
-    .booster strong {
-
-      font-size: 20px;
-
+    #shootButton:active {
+      transform: scale(0.9);
     }
 
-    .booster.locked {
+    /* =========================================================
+       BOOSTERS
+    ========================================================== */
 
-      opacity: .35;
-
-    }
-
-    /* =====================================================
-       INDICADOR XR
-       ===================================================== */
-
-    #xrStatus {
-
+    #boosters {
       position: fixed;
 
-      left: 50%;
+      left: 15px;
 
-      bottom: 20px;
+      bottom: calc(
+        20px + env(safe-area-inset-bottom, 0px)
+      );
 
-      transform:
-        translateX(-50%);
+      z-index: 15;
 
-      z-index: 100;
+      display: flex;
+      gap: 8px;
 
-      display: none;
+      pointer-events: auto;
+    }
 
-      padding: 9px 14px;
+    .booster {
+      width: 54px;
+      height: 54px;
 
-      border-radius: 12px;
+      border-radius: 15px;
 
-      background:
-        rgba(0,0,0,.72);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+
+      background: rgba(15, 15, 15, 0.82);
 
       color: white;
 
-      font-size: 12px;
+      font-size: 22px;
+
+      cursor: pointer;
+
+      position: relative;
+    }
+
+    .booster small {
+      position: absolute;
+
+      bottom: -16px;
+      left: 50%;
+
+      transform: translateX(-50%);
+
+      white-space: nowrap;
+
+      color: #aaa;
+
+      font-size: 9px;
+    }
+
+    .booster:disabled {
+      opacity: 0.35;
+    }
+
+    /* =========================================================
+       MENSAJES
+    ========================================================== */
+
+    #message {
+      position: fixed;
+
+      left: 50%;
+      top: 22%;
+
+      transform: translateX(-50%);
+
+      z-index: 18;
+
+      padding: 13px 22px;
+
+      border-radius: 14px;
+
+      background: rgba(0, 0, 0, 0.78);
+
+      border: 1px solid rgba(255, 255, 255, 0.12);
+
+      font-size: 17px;
+      font-weight: 900;
+
+      opacity: 0;
 
       pointer-events: none;
 
+      transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
     }
 
+    #message.show {
+      opacity: 1;
+
+      transform:
+        translateX(-50%)
+        translateY(-5px);
+    }
+
+    /* =========================================================
+       GAME OVER
+    ========================================================== */
+
+    .game-over-title {
+      font-size: 42px;
+
+      margin: 0 0 10px;
+
+      font-weight: 900;
+    }
+
+    .stats {
+      display: grid;
+
+      grid-template-columns: 1fr 1fr;
+
+      gap: 10px;
+
+      margin: 20px 0;
+    }
+
+    .stat {
+      padding: 16px;
+
+      border-radius: 15px;
+
+      background: #151515;
+    }
+
+    .stat-number {
+      font-size: 25px;
+      font-weight: 900;
+    }
+
+    .stat-label {
+      margin-top: 4px;
+
+      color: #777;
+
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================== */
+
+    @media (max-width: 500px) {
+      .panel {
+        padding: 21px;
+      }
+
+      .mode-grid {
+        gap: 8px;
+      }
+
+      .mode-card {
+        min-height: 135px;
+        padding: 14px;
+      }
+
+      .mode-icon {
+        font-size: 34px;
+      }
+
+      #shootButton {
+        width: 82px;
+        height: 82px;
+      }
+
+      .hud-card {
+        min-width: 72px;
+        padding: 7px 9px;
+      }
+
+      .hud-value {
+        font-size: 16px;
+      }
+    }
   </style>
-
 </head>
-
 
 <body>
 
-
-<!-- =========================================================
-     VIDEO DE CÁMARA
-     ========================================================= -->
-
-<video
-  id="cameraVideo"
-  autoplay
-  playsinline
-  muted>
-</video>
-
-
-<!-- =========================================================
-     MENÚ PRINCIPAL
-     ========================================================= -->
-
-<section
-  id="startScreen"
-  class="screen">
-
-  <div class="panel">
-
-    <div class="logo">
-
-      ☣
-
-      <span>SUPERVIVENCIA AR</span>
-
-    </div>
-
-    <p class="subtitle">
-
-      El mundo real ya no es seguro.<br>
-      Sobrevive a las oleadas de zombies.
-
-    </p>
-
-
-    <div
-      id="systemStatus"
-      class="status">
-
-      Comprobando compatibilidad...
-
-    </div>
-
-
-    <div class="mode-title">
-
-      Selecciona el modo de juego
-
-    </div>
-
-
-    <div class="mode-grid">
-
-
-      <button
-        id="levelMode"
-        class="mode-card selected">
-
-        <div class="mode-icon">
-          🎯
-        </div>
-
-        <div class="mode-name">
-          NIVELES
-        </div>
-
-        <div class="mode-desc">
-          Cada nivel aumenta
-          la dificultad.
-        </div>
-
-      </button>
-
-
-      <button
-        id="survivalMode"
-        class="mode-card">
-
-        <div class="mode-icon">
-          ♾️
-        </div>
-
-        <div class="mode-name">
-          SUPERVIVENCIA
-        </div>
-
-        <div class="mode-desc">
-          Sobrevive todo
-          lo que puedas.
-        </div>
-
-      </button>
-
-
-    </div>
-
-
-    <button
-      id="startButton">
-
-      📱 INICIAR EXPERIENCIA
-
-    </button>
-
-
-    <button
-      id="instructionsButton"
-      class="secondary">
-
-      ❓ CÓMO JUGAR
-
-    </button>
-
-
-    <p
-      style="
-        color:#666;
-        font-size:11px;
-        margin-top:18px;
-        line-height:1.5;
-      ">
-
-      El sistema detectará automáticamente
-      las capacidades de tu dispositivo y
-      utilizará el modo compatible.
-
-    </p>
-
-  </div>
-
-</section>
-
-
-<!-- =========================================================
-     INSTRUCCIONES
-     ========================================================= -->
-
-<section
-  id="instructionsScreen"
-  class="screen hidden">
-
-  <div class="panel">
-
-    <h2>
-      🎮 CÓMO JUGAR
-    </h2>
-
-    <p>
-      <strong>1.</strong>
-      Apunta el teléfono hacia el entorno.
-    </p>
-
-    <p>
-      <strong>2.</strong>
-      Espera a que termine la calibración.
-    </p>
-
-    <p>
-      <strong>3.</strong>
-      Los zombies aparecerán
-      solamente delante de ti.
-    </p>
-
-    <p>
-      <strong>4.</strong>
-      Coloca el zombie en la mira
-      y pulsa DISPARAR.
-    </p>
-
-    <p>
-      <strong>5.</strong>
-      No permitas que lleguen
-      hasta ti.
-    </p>
-
-    <button
-      id="closeInstructions">
-
-      ← VOLVER
-
-    </button>
-
-  </div>
-
-</section>
-
-
-<!-- =========================================================
-     CALIBRACIÓN
-     ========================================================= -->
-
-<div id="calibration">
-
-  <div class="calibration-panel">
-
-    <h2>
-      📐 MAPEO DEL ENTORNO
-    </h2>
-
-    <div class="scan"></div>
-
-    <h3 id="calibrationTitle">
-      Preparando entorno...
-    </h3>
-
-    <p
-      id="calibrationText"
-      style="
-        color:#aaa;
-        line-height:1.5;
-      ">
-
-      Mantén el teléfono estable
-      durante unos segundos.
-
-    </p>
-
-  </div>
-
-</div>
-
-
-<!-- =========================================================
-     HUD
-     ========================================================= -->
-
-<div id="hud">
-
-  <div class="hud">
-
-    <div class="hud-box">
-
-      PUNTOS
-
-      <strong id="score">
-        0
-      </strong>
-
-    </div>
-
-
-    <div class="hud-box">
-
-      VIDAS
-
-      <strong id="lives">
-        ❤️❤️❤️
-      </strong>
-
-    </div>
-
-
-    <div class="hud-box">
-
-      NIVEL
-
-      <strong id="level">
-        1
-      </strong>
-
-    </div>
-
-  </div>
-
-</div>
-
-
-<!-- =========================================================
-     MIRA
-     ========================================================= -->
-
-<div id="crosshair">
-
-  <div class="cross-dot"></div>
-
-</div>
-
-
-<!-- =========================================================
-     BOOSTERS
-     ========================================================= -->
-
-<div id="boosters">
-
-  <button
-    id="weaponBooster"
-    class="booster locked">
-
-    <strong>
-      🔫
-    </strong>
-
-    ARMA
-
-  </button>
-
-
-  <button
-    id="nuclearBooster"
-    class="booster locked">
-
-    <strong>
-      ☢️
-    </strong>
-
-    NUCLEAR
-
-  </button>
-
-</div>
-
-
-<!-- =========================================================
-     DISPARO
-     ========================================================= -->
-
-<button id="shootButton">
-
-  <span class="gun">
-    🔫
-  </span>
-
-  DISPARAR
-
-</button>
-
-
-<!-- =========================================================
-     MENSAJE
-     ========================================================= -->
-
-<div id="message"></div>
-
-
-<div id="xrStatus"></div>
-
-
-<!-- =========================================================
-     ESCENA
-     ========================================================= -->
-
-<a-scene
-  id="scene"
-
-  embedded
-
-  xr-mode-ui="
-    enabled: false;
-    XRMode: ar;
-  "
-
-  webxr="
-    optionalFeatures:
-      hit-test,
-      local-floor,
-      dom-overlay;
-  "
-
-  renderer="
-    alpha: true;
-    antialias: true;
-    colorManagement: true;
-    physicallyCorrectLights: false;
-  "
-
-  loading-screen="
-    enabled: false;
-  "
-
-  device-orientation-permission-ui="
-    enabled: true;
-  "
->
-
-
-  <a-assets>
-
-    <a-asset-item
-      id="zombieModel"
-      src="zombie.glb">
-    </a-asset-item>
-
-  </a-assets>
-
-
-  <!-- ILUMINACIÓN -->
-
-  <a-entity
-    light="
-      type: ambient;
-      color: #ffffff;
-      intensity: 1.8;
-    ">
-  </a-entity>
-
-
-  <a-entity
-    light="
-      type: directional;
-      color: #ffffff;
-      intensity: 1.2;
+  <!-- =========================================================
+       VIDEO DE CÁMARA
+  ========================================================== -->
+
+  <video
+    id="cameraVideo"
+    autoplay
+    playsinline
+    muted
+  ></video>
+
+  <!-- =========================================================
+       ESCENA A-FRAME
+  ========================================================== -->
+
+  <a-scene
+    id="scene"
+    embedded
+    renderer="
+      alpha: true;
+      antialias: true;
+      colorManagement: true;
+      physicallyCorrectLights: true;
     "
-    position="2 5 3">
-  </a-entity>
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+  >
+
+    <!-- =======================================================
+         ASSETS
+    ======================================================== -->
+
+    <a-assets timeout="15000">
+
+      <a-asset-item
+        id="zombieModel"
+        src="zombie.glb"
+      ></a-asset-item>
+
+    </a-assets>
+
+    <!-- =======================================================
+         LUZ
+    ======================================================== -->
+
+    <a-entity
+      light="
+        type: ambient;
+        color: #ffffff;
+        intensity: 1.7;
+      "
+    ></a-entity>
+
+    <a-entity
+      light="
+        type: directional;
+        color: #ffffff;
+        intensity: 1.2;
+      "
+      position="2 5 2"
+    ></a-entity>
+
+    <!-- =======================================================
+         CÁMARA
+    ======================================================== -->
+
+    <a-entity
+      id="cameraRig"
+      position="0 0 0"
+    >
+
+      <a-camera
+        id="mainCamera"
+        position="0 1.6 0"
+        look-controls="enabled: false"
+        wasd-controls="enabled: false"
+      ></a-camera>
+
+    </a-entity>
+
+    <!-- =======================================================
+         ARENA
+    ======================================================== -->
+
+    <a-entity
+      id="arena"
+      position="0 0 -3"
+    ></a-entity>
+
+  </a-scene>
+
+  <!-- =========================================================
+       PANTALLA PRINCIPAL
+  ========================================================== -->
+
+  <section
+    id="menuScreen"
+    class="screen"
+  >
+
+    <div class="panel">
+
+      <h1 class="title">
+        SUPERVIVENCIA AR
+      </h1>
+
+      <p class="subtitle">
+        Enfréntate a una invasión de zombies
+        utilizando realidad aumentada.
+      </p>
+
+      <div class="section-title">
+        Selecciona el modo
+      </div>
+
+      <div class="mode-grid">
+
+        <div
+          id="modeLevels"
+          class="mode-card selected"
+          data-mode="levels"
+        >
+
+          <div class="mode-icon">
+            🎯
+          </div>
+
+          <div class="mode-name">
+            Niveles
+          </div>
+
+          <div class="mode-description">
+            Avanza por niveles cada vez más difíciles.
+          </div>
+
+        </div>
+
+        <div
+          id="modeSurvival"
+          class="mode-card"
+          data-mode="survival"
+        >
+
+          <div class="mode-icon">
+            ☠️
+          </div>
+
+          <div class="mode-name">
+            Supervivencia
+          </div>
+
+          <div class="mode-description">
+            Sobrevive el mayor tiempo posible.
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="instructions">
+
+        <div class="instruction">
+
+          <div class="instruction-icon">
+            🎯
+          </div>
+
+          <div class="instruction-text">
+            Apunta al zombie usando el centro de la pantalla.
+          </div>
+
+        </div>
+
+        <div class="instruction">
+
+          <div class="instruction-icon">
+            🔫
+          </div>
+
+          <div class="instruction-text">
+            Pulsa el botón rojo para disparar.
+          </div>
+
+        </div>
+
+        <div class="instruction">
+
+          <div class="instruction-icon">
+            🧟
+          </div>
+
+          <div class="instruction-text">
+            Los zombies aparecerán dentro de un arco frontal de aproximadamente 180°.
+          </div>
+
+        </div>
+
+        <div class="instruction">
+
+          <div class="instruction-icon">
+            💥
+          </div>
+
+          <div class="instruction-text">
+            Consigue puntos para desbloquear boosters.
+          </div>
+
+        </div>
+
+      </div>
+
+      <button
+        id="startButton"
+        class="btn btn-primary"
+      >
+        INICIAR PARTIDA
+      </button>
+
+    </div>
+
+  </section>
+
+  <!-- =========================================================
+       PANTALLA DE CALIBRACIÓN
+  ========================================================== -->
+
+  <section
+    id="calibrationScreen"
+    class="screen hidden"
+  >
+
+    <div class="calibration-box">
+
+      <div class="calibration-icon">
+        📱
+      </div>
+
+      <h2>
+        Preparando el entorno
+      </h2>
+
+      <p class="subtitle">
+        Permite el acceso a la cámara y apunta
+        hacia el espacio donde aparecerán los zombies.
+      </p>
+
+      <button
+        id="calibrateButton"
+        class="btn btn-primary"
+      >
+        MAPEAR ENTORNO
+      </button>
+
+      <button
+        id="continueButton"
+        class="btn btn-secondary hidden"
+      >
+        CONTINUAR
+      </button>
+
+    </div>
+
+  </section>
+
+  <!-- =========================================================
+       HUD
+  ========================================================== -->
+
+  <div
+    id="hud"
+    class="hidden"
+  >
+
+    <div class="hud-top">
+
+      <div class="hud-group">
+
+        <div class="hud-card">
+
+          <span class="hud-label">
+            Puntos
+          </span>
+
+          <span
+            id="scoreValue"
+            class="hud-value"
+          >
+            0
+          </span>
+
+        </div>
+
+        <div
+          id="levelCard"
+          class="hud-card"
+        >
+
+          <span class="hud-label">
+            Nivel
+          </span>
+
+          <span
+            id="levelValue"
+            class="hud-value"
+          >
+            1
+          </span>
+
+        </div>
+
+        <div class="hud-card">
+
+          <span class="hud-label">
+            Vidas
+          </span>
+
+          <span
+            id="livesValue"
+            class="hud-value"
+          >
+            ❤️❤️❤️
+          </span>
+
+        </div>
+
+      </div>
+
+      <div class="hud-group">
+
+        <div class="hud-card">
+
+          <span class="hud-label">
+            Zombies
+          </span>
+
+          <span
+            id="zombiesValue"
+            class="hud-value"
+          >
+            0
+          </span>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- =========================================================
+       CROSSHAIR
+  ========================================================== -->
+
+  <div
+    id="crosshair"
+    class="hidden"
+  >
+
+    <div class="crosshair-center"></div>
+
+  </div>
+
+  <!-- =========================================================
+       MENSAJE
+  ========================================================== -->
+
+  <div
+    id="message"
+  ></div>
+
+  <!-- =========================================================
+       BOOSTERS
+  ========================================================== -->
+
+  <div
+    id="boosters"
+    class="hidden"
+  >
+
+    <button
+      id="weaponBooster"
+      class="booster"
+      disabled
+    >
+
+      🔥
+
+      <small>
+        x2
+      </small>
+
+    </button>
+
+    <button
+      id="nuclearBooster"
+      class="booster"
+      disabled
+    >
+
+      ☢️
+
+      <small>
+        NUCLEAR
+      </small>
+
+    </button>
+
+  </div>
+
+  <!-- =========================================================
+       DISPARAR
+  ========================================================== -->
+
+  <button
+    id="shootButton"
+    class="hidden"
+  >
+    DISPARAR
+  </button>
+
+  <!-- =========================================================
+       GAME OVER
+  ========================================================== -->
+
+  <section
+    id="gameOverScreen"
+    class="screen hidden"
+  >
+
+    <div class="panel">
+
+      <h1 class="game-over-title">
+        GAME OVER
+      </h1>
+
+      <p class="subtitle">
+        Los zombies han ganado esta ronda.
+      </p>
+
+      <div class="stats">
+
+        <div class="stat">
+
+          <div
+            id="finalScore"
+            class="stat-number"
+          >
+            0
+          </div>
+
+          <div class="stat-label">
+            Puntos
+          </div>
+
+        </div>
+
+        <div class="stat">
+
+          <div
+            id="finalLevel"
+            class="stat-number"
+          >
+            1
+          </div>
+
+          <div class="stat-label">
+            Nivel
+          </div>
+
+        </div>
+
+        <div class="stat">
+
+          <div
+            id="finalKills"
+            class="stat-number"
+          >
+            0
+          </div>
+
+          <div class="stat-label">
+            Eliminados
+          </div>
+
+        </div>
+
+        <div class="stat">
+
+          <div
+            id="finalTime"
+            class="stat-number"
+          >
+            0s
+          </div>
+
+          <div class="stat-label">
+            Tiempo
+          </div>
+
+        </div>
+
+      </div>
+
+      <button
+        id="restartButton"
+        class="btn btn-primary"
+      >
+        JUGAR DE NUEVO
+      </button>
+
+      <button
+        id="menuButton"
+        class="btn btn-secondary"
+      >
+        VOLVER AL MENÚ
+      </button>
+
+    </div>
+
+  </section>
+
+  <!-- =========================================================
+       AUDIO
+  ========================================================== -->
+
+  <audio
+    id="buttonSound"
+    src="boton.mp3"
+    preload="auto"
+  ></audio>
+
+  <audio
+    id="shootSound"
+    src="disparo.mp3"
+    preload="auto"
+  ></audio>
+
+  <audio
+    id="backgroundMusic"
+    src="fondo.mp3"
+    preload="auto"
+    loop
+  ></audio>
+
+  <!-- =========================================================
+       JAVASCRIPT
+  ========================================================== -->
+
+  <script>
+
+    /* =========================================================
+       ESTADO DEL JUEGO
+    ========================================================== */
+
+    const GAME = {
+
+      running: false,
+
+      mode: "levels",
+
+      score: 0,
+
+      level: 1,
+
+      lives: 3,
+
+      kills: 0,
+
+      zombiesSpawned: 0,
+
+      startTime: 0,
+
+      survivalTime: 0,
+
+      lastSpawn: 0,
+
+      spawnInterval: 3000,
+
+      survivalWave: 1,
+
+      survivalTimer: 0,
+
+      usingCameraFallback: false,
+
+      weaponBoosterReady: false,
+
+      nuclearBoosterReady: false,
+
+      doubleDamage: false,
+
+      nuclearActive: false,
+
+      calibrationDone: false
+
+    };
 
 
-  <!-- CÁMARA -->
+    /* =========================================================
+       REFERENCIAS DOM
+    ========================================================== */
 
-  <a-camera
-    id="camera"
+    const scene = document.getElementById("scene");
 
-    position="0 1.6 0"
+    const cameraVideo =
+      document.getElementById("cameraVideo");
 
-    look-controls="
-      enabled: true;
-      touchEnabled: false;
-      mouseEnabled: true;
-      magicWindowTrackingEnabled: true;
-    ">
+    const menuScreen =
+      document.getElementById("menuScreen");
 
-  </a-camera>
+    const calibrationScreen =
+      document.getElementById("calibrationScreen");
+
+    const gameOverScreen =
+      document.getElementById("gameOverScreen");
+
+    const hud =
+      document.getElementById("hud");
+
+    const crosshair =
+      document.getElementById("crosshair");
+
+    const shootButton =
+      document.getElementById("shootButton");
+
+    const boosters =
+      document.getElementById("boosters");
+
+    const message =
+      document.getElementById("message");
+
+    const modeLevels =
+      document.getElementById("modeLevels");
+
+    const modeSurvival =
+      document.getElementById("modeSurvival");
+
+    const startButton =
+      document.getElementById("startButton");
+
+    const calibrateButton =
+      document.getElementById("calibrateButton");
+
+    const continueButton =
+      document.getElementById("continueButton");
+
+    const restartButton =
+      document.getElementById("restartButton");
+
+    const menuButton =
+      document.getElementById("menuButton");
+
+    const scoreValue =
+      document.getElementById("scoreValue");
+
+    const levelValue =
+      document.getElementById("levelValue");
+
+    const livesValue =
+      document.getElementById("livesValue");
+
+    const zombiesValue =
+      document.getElementById("zombiesValue");
+
+    const levelCard =
+      document.getElementById("levelCard");
+
+    const weaponBooster =
+      document.getElementById("weaponBooster");
+
+    const nuclearBooster =
+      document.getElementById("nuclearBooster");
+
+    const finalScore =
+      document.getElementById("finalScore");
+
+    const finalLevel =
+      document.getElementById("finalLevel");
+
+    const finalKills =
+      document.getElementById("finalKills");
+
+    const finalTime =
+      document.getElementById("finalTime");
 
 
-  <!-- ARENA -->
+    /* =========================================================
+       AUDIO
+    ========================================================== */
 
-  <a-entity
-    id="arena">
-  </a-entity>
+    const buttonSound =
+      document.getElementById("buttonSound");
+
+    const shootSound =
+      document.getElementById("shootSound");
+
+    const backgroundMusic =
+      document.getElementById("backgroundMusic");
 
 
-</a-scene>
+    function playButtonSound() {
+
+      try {
+
+        buttonSound.currentTime = 0;
+
+        buttonSound.play().catch(() => {});
+
+      } catch (e) {}
+
+    }
 
 
-<script>
+    function playShootSound() {
 
-/* ============================================================
-   REGISTRO DE COMPONENTE:
-   MOVIMIENTO DEL ZOMBIE
+      try {
 
-   IMPORTANTE:
-   A-Frame utiliza tick para integrar el movimiento
-   dentro de su propio ciclo de renderizado.
-   ============================================================ */
+        shootSound.currentTime = 0;
 
-AFRAME.registerComponent(
-  "zombie-movement",
-  {
+        shootSound.play().catch(() => {});
 
-    schema: {
+      } catch (e) {}
 
-      speed: {
-        type: "number",
-        default: 0.65
-      },
+    }
 
-      stopDistance: {
-        type: "number",
-        default: 0.65
+
+    function startMusic() {
+
+      try {
+
+        backgroundMusic.volume = 0.35;
+
+        backgroundMusic.loop = true;
+
+        backgroundMusic.play().catch(() => {});
+
+      } catch (e) {}
+
+    }
+
+
+    function stopMusic() {
+
+      try {
+
+        backgroundMusic.pause();
+
+        backgroundMusic.currentTime = 0;
+
+      } catch (e) {}
+
+    }
+
+
+    /* =========================================================
+       COMPONENTE DE MOVIMIENTO DEL ZOMBIE
+    ========================================================== */
+
+    AFRAME.registerComponent(
+      "zombie-movement",
+      {
+
+        schema: {
+
+          speed: {
+            type: "number",
+            default: 0.55
+          }
+
+        },
+
+
+        init: function () {
+
+          this.direction = new THREE.Vector3();
+
+          this.worldPosition = new THREE.Vector3();
+
+          this.targetPosition =
+            new THREE.Vector3();
+
+          this.lastTime = null;
+
+        },
+
+
+        tick: function (time, delta) {
+
+          if (!GAME.running) return;
+
+          if (
+            !this.el.object3D ||
+            this.el.dataset.alive === "false"
+          ) {
+            return;
+          }
+
+          const dt =
+            Math.min(delta || 16, 50) / 1000;
+
+          const object =
+            this.el.object3D;
+
+          const camera =
+            document.getElementById("mainCamera");
+
+          if (!camera || !camera.object3D) {
+            return;
+          }
+
+          /* -----------------------------------------------
+             POSICIÓN DEL ZOMBIE
+          ------------------------------------------------ */
+
+          object.getWorldPosition(
+            this.worldPosition
+          );
+
+          /* -----------------------------------------------
+             POSICIÓN DEL JUGADOR
+          ------------------------------------------------ */
+
+          const playerPosition =
+            new THREE.Vector3();
+
+          camera.object3D.getWorldPosition(
+            playerPosition
+          );
+
+          /* -----------------------------------------------
+             DIRECCIÓN HACIA EL JUGADOR
+          ------------------------------------------------ */
+
+          this.direction
+            .copy(playerPosition)
+            .sub(this.worldPosition);
+
+          /*
+           * Movimiento horizontal.
+           * El zombie NO intenta volar ni hundirse.
+           */
+          this.direction.y = 0;
+
+          const distance =
+            this.direction.length();
+
+          if (distance < 0.001) {
+            return;
+          }
+
+          this.direction.normalize();
+
+          /* -----------------------------------------------
+             VELOCIDAD
+          ------------------------------------------------ */
+
+          const speed =
+            this.data.speed *
+            (GAME.level > 1
+              ? 1 + (GAME.level - 1) * 0.08
+              : 1);
+
+          const movement =
+            this.direction
+              .clone()
+              .multiplyScalar(
+                speed * dt
+              );
+
+          /* -----------------------------------------------
+             MOVER EN WORLD SPACE
+          ------------------------------------------------ */
+
+          const newWorldPosition =
+            this.worldPosition
+              .clone()
+              .add(movement);
+
+          if (object.parent) {
+
+            const localPosition =
+              object.parent.worldToLocal(
+                newWorldPosition
+              );
+
+            object.position.copy(
+              localPosition
+            );
+
+          } else {
+
+            object.position.copy(
+              newWorldPosition
+            );
+
+          }
+
+          /* -----------------------------------------------
+             MIRAR HACIA EL JUGADOR
+          ------------------------------------------------ */
+
+          const angle =
+            Math.atan2(
+              this.direction.x,
+              this.direction.z
+            );
+
+          object.rotation.y =
+            THREE.MathUtils.lerp(
+              object.rotation.y,
+              angle,
+              Math.min(1, dt * 8)
+            );
+
+          /* -----------------------------------------------
+             SI LLEGA AL JUGADOR
+          ------------------------------------------------ */
+
+          if (distance < 1.15) {
+
+            zombieHitsPlayer(this.el);
+
+          }
+
+        }
+
+      }
+    );
+
+
+    /* =========================================================
+       NUEVA HITBOX ROBUSTA DEL ZOMBIE
+    ========================================================== */
+
+    AFRAME.registerComponent(
+      "zombie-hitbox",
+      {
+
+        init: function () {
+
+          /*
+           * Hitbox independiente de la geometría del GLB.
+           *
+           * Esto evita problemas con:
+           * - origen del modelo
+           * - mallas internas
+           * - escala del GLB
+           * - huesos
+           * - geometría invisible
+           * - meshes con nombres diferentes
+           */
+
+          const hitbox =
+            document.createElement("a-entity");
+
+
+          hitbox.setAttribute(
+            "geometry",
+            {
+              primitive: "box",
+
+              /*
+               * Tamaño suficientemente generoso
+               * para que el jugador pueda acertar
+               * apuntando al cuerpo del zombie.
+               */
+
+              width: 1.15,
+
+              height: 2.35,
+
+              depth: 0.90
+            }
+          );
+
+
+          hitbox.setAttribute(
+            "material",
+            {
+              transparent: true,
+
+              opacity: 0,
+
+              depthWrite: false,
+
+              shader: "flat"
+            }
+          );
+
+
+          /*
+           * Centro de la hitbox:
+           *
+           * Y = 1.15
+           *
+           * Así cubre aproximadamente:
+           *
+           * 0.0m -> pies
+           * 2.35m -> cabeza
+           */
+
+          hitbox.object3D.position.set(
+            0,
+            1.15,
+            0
+          );
+
+
+          /*
+           * Guardamos referencia al zombie.
+           *
+           * El raycaster la utilizará para
+           * identificar qué zombie recibió
+           * el disparo.
+           */
+
+          hitbox.object3D.userData.isZombieHitbox =
+            true;
+
+          hitbox.object3D.userData.zombieEntity =
+            this.el;
+
+
+          /*
+           * La hitbox se agrega como hija
+           * del zombie.
+           *
+           * Por lo tanto se mueve automáticamente
+           * junto con él.
+           */
+
+          this.el.appendChild(hitbox);
+
+
+          this.hitbox = hitbox;
+
+        },
+
+
+        remove: function () {
+
+          if (
+            this.hitbox &&
+            this.hitbox.parentNode
+          ) {
+
+            this.hitbox.parentNode.removeChild(
+              this.hitbox
+            );
+
+          }
+
+        }
+
+      }
+    );
+
+
+    /* =========================================================
+       SELECCIÓN DE MODO
+    ========================================================== */
+
+    modeLevels.addEventListener(
+      "click",
+      function () {
+
+        playButtonSound();
+
+        GAME.mode = "levels";
+
+        modeLevels.classList.add(
+          "selected"
+        );
+
+        modeSurvival.classList.remove(
+          "selected"
+        );
+
+      }
+    );
+
+
+    modeSurvival.addEventListener(
+      "click",
+      function () {
+
+        playButtonSound();
+
+        GAME.mode = "survival";
+
+        modeSurvival.classList.add(
+          "selected"
+        );
+
+        modeLevels.classList.remove(
+          "selected"
+        );
+
+      }
+    );
+
+
+    /* =========================================================
+       BOTÓN INICIAR
+    ========================================================== */
+
+    startButton.addEventListener(
+      "click",
+      async function () {
+
+        playButtonSound();
+
+        startMusic();
+
+        menuScreen.classList.add(
+          "hidden"
+        );
+
+        calibrationScreen.classList.remove(
+          "hidden"
+        );
+
+        /*
+         * Intentamos activar la cámara.
+         *
+         * Si falla, no detenemos el juego.
+         */
+
+        await activateCamera();
+
+      }
+    );
+
+
+    /* =========================================================
+       ACTIVAR CÁMARA
+    ========================================================== */
+
+    async function activateCamera() {
+
+      try {
+
+        if (
+          !navigator.mediaDevices ||
+          !navigator.mediaDevices.getUserMedia
+        ) {
+
+          showMessage(
+            "Cámara no disponible"
+          );
+
+          return false;
+
+        }
+
+
+        const stream =
+          await navigator.mediaDevices.getUserMedia(
+            {
+              video: {
+                facingMode: {
+                  ideal: "environment"
+                },
+
+                width: {
+                  ideal: 1920
+                },
+
+                height: {
+                  ideal: 1080
+                }
+              },
+
+              audio: false
+            }
+          );
+
+
+        cameraVideo.srcObject =
+          stream;
+
+        cameraVideo.style.display =
+          "block";
+
+        GAME.usingCameraFallback =
+          true;
+
+
+        await cameraVideo.play().catch(
+          () => {}
+        );
+
+
+        continueButton.classList.remove(
+          "hidden"
+        );
+
+
+        return true;
+
+      } catch (error) {
+
+        console.warn(
+          "No se pudo activar la cámara:",
+          error
+        );
+
+
+        showMessage(
+          "No se pudo acceder a la cámara"
+        );
+
+
+        /*
+         * Permitimos continuar incluso
+         * si el dispositivo no ofrece cámara.
+         */
+
+        continueButton.classList.remove(
+          "hidden"
+        );
+
+
+        return false;
+
       }
 
-    },
+    }
 
 
-    init: function () {
+    /* =========================================================
+       CALIBRACIÓN
+    ========================================================== */
 
-      this.direction =
-        new THREE.Vector3();
+    calibrateButton.addEventListener(
+      "click",
+      function () {
 
-      this.worldPosition =
-        new THREE.Vector3();
+        playButtonSound();
 
-      this.playerPosition =
-        new THREE.Vector3();
+        GAME.calibrationDone =
+          true;
 
-      this.targetRotation = 0;
+        calibrateButton.textContent =
+          "ENTORNO LISTO";
 
-    },
+        calibrateButton.disabled =
+          true;
+
+        continueButton.classList.remove(
+          "hidden"
+        );
+
+        showMessage(
+          "Entorno mapeado"
+        );
+
+      }
+    );
 
 
-    tick: function (time, delta) {
+    continueButton.addEventListener(
+      "click",
+      function () {
+
+        playButtonSound();
+
+        startGame();
+
+      }
+    );
+
+
+    /* =========================================================
+       CREAR ARENA
+    ========================================================== */
+
+    function buildArena() {
+
+      const arena =
+        document.getElementById(
+          "arena"
+        );
+
+      /*
+       * Limpiar solamente elementos
+       * creados anteriormente.
+       */
+
+      while (
+        arena.firstChild
+      ) {
+
+        arena.removeChild(
+          arena.firstChild
+        );
+
+      }
+
+      /*
+       * La arena funciona como referencia
+       * visual/espacial para los zombies.
+       *
+       * No añadimos obstáculos físicos
+       * para no interferir con el juego.
+       */
+
+      const ground =
+        document.createElement(
+          "a-entity"
+        );
+
+
+      ground.setAttribute(
+        "geometry",
+        {
+          primitive: "plane",
+
+          width: 18,
+
+          height: 18
+        }
+      );
+
+
+      ground.setAttribute(
+        "rotation",
+        "-90 0 0"
+      );
+
+
+      ground.setAttribute(
+        "material",
+        {
+          color: "#202020",
+
+          transparent: true,
+
+          opacity: 0.12
+        }
+      );
+
+
+      arena.appendChild(
+        ground
+      );
+
+    }
+
+
+    /* =========================================================
+       INICIAR JUEGO
+    ========================================================== */
+
+    function startGame() {
+
+      /*
+       * Limpiar zombies existentes.
+       */
+
+      removeAllZombies();
+
+
+      GAME.running = true;
+
+      GAME.score = 0;
+
+      GAME.level = 1;
+
+      GAME.lives = 3;
+
+      GAME.kills = 0;
+
+      GAME.zombiesSpawned = 0;
+
+      GAME.startTime =
+        performance.now();
+
+      GAME.lastSpawn =
+        performance.now();
+
+      GAME.survivalWave = 1;
+
+      GAME.survivalTimer = 0;
+
+      GAME.weaponBoosterReady =
+        false;
+
+      GAME.nuclearBoosterReady =
+        false;
+
+      GAME.doubleDamage =
+        false;
+
+      GAME.nuclearActive =
+        false;
+
+
+      /*
+       * Intervalo inicial.
+       */
+
+      GAME.spawnInterval =
+        GAME.mode === "survival"
+          ? 3500
+          : 3200;
+
+
+      buildArena();
+
+
+      calibrationScreen.classList.add(
+        "hidden"
+      );
+
+
+      gameOverScreen.classList.add(
+        "hidden"
+      );
+
+
+      hud.classList.remove(
+        "hidden"
+      );
+
+
+      crosshair.classList.remove(
+        "hidden"
+      );
+
+
+      shootButton.classList.remove(
+        "hidden"
+      );
+
+
+      boosters.classList.remove(
+        "hidden"
+      );
+
+
+      /*
+       * Mostrar/ocultar tarjeta de nivel.
+       */
 
       if (
-        !window.GAME ||
-        !window.GAME.running ||
-        window.GAME.gameOver
+        GAME.mode === "survival"
+      ) {
+
+        levelCard.querySelector(
+          ".hud-label"
+        ).textContent =
+          "Oleada";
+
+      } else {
+
+        levelCard.querySelector(
+          ".hud-label"
+        ).textContent =
+          "Nivel";
+
+      }
+
+
+      updateHUD();
+
+
+      /*
+       * Primer zombie.
+       */
+
+      setTimeout(
+        () => {
+
+          if (GAME.running) {
+
+            spawnZombie();
+
+          }
+
+        },
+        500
+      );
+
+    }
+
+
+    /* =========================================================
+       CREAR ZOMBIE
+    ========================================================== */
+
+    function spawnZombie() {
+
+      if (!GAME.running) return;
+
+
+      /*
+       * Límite para evitar demasiados
+       * zombies simultáneos.
+       */
+
+      const currentZombies =
+        document.querySelectorAll(
+          "[zombie-movement]"
+        ).length;
+
+
+      const maxZombies =
+        GAME.mode === "survival"
+          ? Math.min(
+              8,
+              3 + GAME.survivalWave
+            )
+          : Math.min(
+              7,
+              2 + GAME.level
+            );
+
+
+      if (
+        currentZombies >= maxZombies
       ) {
 
         return;
@@ -1370,21 +2271,210 @@ AFRAME.registerComponent(
       }
 
 
-      if (!this.el.object3D) {
+      const zombie =
+        document.createElement(
+          "a-entity"
+        );
+
+
+      zombie.setAttribute(
+        "gltf-model",
+        "#zombieModel"
+      );
+
+
+      /*
+       * =======================================================
+       * HITBOX NUEVA
+       * =======================================================
+       */
+
+      zombie.setAttribute(
+        "zombie-hitbox",
+        ""
+      );
+
+
+      /*
+       * Movimiento.
+       */
+
+      let speed =
+        GAME.mode === "survival"
+          ? 0.42 +
+            GAME.survivalWave * 0.025
+          : 0.42 +
+            GAME.level * 0.035;
+
+
+      /*
+       * No dejamos que se vuelva
+       * exageradamente rápido.
+       */
+
+      speed =
+        Math.min(
+          speed,
+          0.85
+        );
+
+
+      zombie.setAttribute(
+        "zombie-movement",
+        {
+          speed: speed
+        }
+      );
+
+
+      /*
+       * Animación del GLB.
+       */
+
+      zombie.setAttribute(
+        "animation-mixer",
+        "clip:*; loop:repeat; timeScale:1"
+      );
+
+
+      /*
+       * Escala.
+       */
+
+      const scale =
+        0.78 +
+        Math.min(
+          GAME.level * 0.015,
+          0.12
+        );
+
+
+      zombie.object3D.scale.set(
+        scale,
+        scale,
+        scale
+      );
+
+
+      /*
+       * Marcar como vivo.
+       */
+
+      zombie.dataset.alive =
+        "true";
+
+
+      /*
+       * =======================================================
+       * SPAWN EN ARCO FRONTAL DE 180°
+       * =======================================================
+       *
+       * -90° a +90°
+       *
+       * Nunca detrás del jugador.
+       */
+
+      const angle =
+        THREE.MathUtils.degToRad(
+          THREE.MathUtils.randFloat(
+            -88,
+            88
+          )
+        );
+
+
+      /*
+       * Distancia variable.
+       */
+
+      const distance =
+        THREE.MathUtils.randFloat(
+          2.8,
+          4.5
+        );
+
+
+      /*
+       * Posición respecto a la cámara.
+       */
+
+      const x =
+        Math.sin(angle) *
+        distance;
+
+
+      const z =
+        -Math.cos(angle) *
+        distance;
+
+
+      /*
+       * Como arena está en -3,
+       * usamos coordenadas locales.
+       */
+
+      zombie.object3D.position.set(
+        x,
+        0,
+        z + 3
+      );
+
+
+      /*
+       * Rotación inicial.
+       */
+
+      zombie.object3D.rotation.y =
+        Math.atan2(
+          -x,
+          distance
+        );
+
+
+      /*
+       * Agregar zombie a la arena.
+       */
+
+      const arena =
+        document.getElementById(
+          "arena"
+        );
+
+
+      arena.appendChild(
+        zombie
+      );
+
+
+      GAME.zombiesSpawned++;
+
+
+      updateHUD();
+
+    }
+
+
+    /* =========================================================
+       DISPARO
+    ========================================================== */
+
+    function disparar() {
+
+      if (!GAME.running) {
         return;
       }
 
 
-      const dt =
-        Math.min(
-          delta / 1000,
-          0.05
-        );
+      /*
+       * SONIDO
+       */
+
+      playShootSound();
 
 
       const camera =
         document.getElementById(
-          "camera"
+          "mainCamera"
         );
 
 
@@ -1398,57 +2488,452 @@ AFRAME.registerComponent(
       }
 
 
-      /*
-       * Posiciones mundiales.
-       */
-
-      this.el.object3D
-        .getWorldPosition(
-          this.worldPosition
-        );
-
-      camera.object3D
-        .getWorldPosition(
-          this.playerPosition
-        );
+      const cameraObj =
+        camera.object3D;
 
 
       /*
-       * SOLO movimiento horizontal.
-       *
-       * El zombie no intenta subir
-       * hacia la cámara.
+       * =======================================================
+       * RAYCASTER
+       * =======================================================
        */
 
-      this.direction.set(
+      const raycaster =
+        new THREE.Raycaster();
 
-        this.playerPosition.x -
-        this.worldPosition.x,
 
-        0,
+      const origin =
+        new THREE.Vector3();
 
-        this.playerPosition.z -
-        this.worldPosition.z
 
+      const direction =
+        new THREE.Vector3();
+
+
+      cameraObj.getWorldPosition(
+        origin
       );
 
 
-      const distance =
-        this.direction.length();
+      cameraObj.getWorldDirection(
+        direction
+      );
+
+
+      raycaster.set(
+        origin,
+        direction
+      );
 
 
       /*
-       * Llegó al jugador.
+       * =======================================================
+       * 1. HITBOXES INVISIBLES
+       * =======================================================
+       */
+
+      const hitboxes = [];
+
+
+      document
+        .querySelectorAll(
+          "[zombie-hitbox]"
+        )
+        .forEach(
+          (zombie) => {
+
+            if (
+              zombie.dataset.alive ===
+              "false"
+            ) {
+
+              return;
+
+            }
+
+
+            /*
+             * Buscar la hitbox hija.
+             */
+
+            const hitbox =
+              zombie.querySelector(
+                "[geometry]"
+              );
+
+
+            if (
+              hitbox &&
+              hitbox.object3D
+            ) {
+
+              /*
+               * Actualizar referencia por
+               * seguridad.
+               */
+
+              hitbox.object3D.userData
+                .zombieEntity =
+                zombie;
+
+
+              hitboxes.push(
+                hitbox.object3D
+              );
+
+            }
+
+          }
+        );
+
+
+      /*
+       * Intersecciones.
+       */
+
+      const hitboxHits =
+        raycaster.intersectObjects(
+          hitboxes,
+          true
+        );
+
+
+      if (
+        hitboxHits.length > 0
+      ) {
+
+        let hitObject =
+          hitboxHits[0].object;
+
+
+        let zombieEntity =
+          null;
+
+
+        /*
+         * Subir por la jerarquía
+         * hasta encontrar el zombie.
+         */
+
+        while (hitObject) {
+
+          if (
+            hitObject.userData &&
+            hitObject.userData
+              .zombieEntity
+          ) {
+
+            zombieEntity =
+              hitObject.userData
+                .zombieEntity;
+
+            break;
+
+          }
+
+
+          hitObject =
+            hitObject.parent;
+
+        }
+
+
+        if (
+          zombieEntity
+        ) {
+
+          matarZombie(
+            zombieEntity
+          );
+
+          return;
+
+        }
+
+      }
+
+
+      /*
+       * =======================================================
+       * 2. RAYCAST SOBRE EL GLB
+       * =======================================================
+       *
+       * Se conserva como segundo sistema.
+       */
+
+      const zombieMeshes = [];
+
+
+      document
+        .querySelectorAll(
+          "[zombie-movement]"
+        )
+        .forEach(
+          (zombie) => {
+
+            if (
+              zombie.dataset.alive ===
+              "false"
+            ) {
+
+              return;
+
+            }
+
+
+            zombie.object3D.traverse(
+              (object) => {
+
+                if (
+                  object.isMesh
+                ) {
+
+                  object.userData
+                    .zombieEntity =
+                    zombie;
+
+
+                  zombieMeshes.push(
+                    object
+                  );
+
+                }
+
+              }
+            );
+
+          }
+        );
+
+
+      const modelHits =
+        raycaster.intersectObjects(
+          zombieMeshes,
+          true
+        );
+
+
+      if (
+        modelHits.length > 0
+      ) {
+
+        let object =
+          modelHits[0].object;
+
+
+        let zombieEntity =
+          null;
+
+
+        while (object) {
+
+          if (
+            object.userData &&
+            object.userData
+              .zombieEntity
+          ) {
+
+            zombieEntity =
+              object.userData
+                .zombieEntity;
+
+            break;
+
+          }
+
+
+          object =
+            object.parent;
+
+        }
+
+
+        if (
+          zombieEntity
+        ) {
+
+          matarZombie(
+            zombieEntity
+          );
+
+          return;
+
+        }
+
+      }
+
+
+      /*
+       * =======================================================
+       * 3. SISTEMA ANGULAR DE RESPALDO
+       * =======================================================
+       *
+       * Aunque el raycast no toque ninguna
+       * geometría, si el jugador está apuntando
+       * suficientemente cerca del centro del zombie,
+       * el disparo cuenta.
+       */
+
+      let bestZombie =
+        null;
+
+
+      let smallestAngle =
+        Infinity;
+
+
+      const cameraPosition =
+        new THREE.Vector3();
+
+
+      const cameraDirection =
+        new THREE.Vector3();
+
+
+      cameraObj.getWorldPosition(
+        cameraPosition
+      );
+
+
+      cameraObj.getWorldDirection(
+        cameraDirection
+      );
+
+
+      cameraDirection.y = 0;
+
+
+      cameraDirection.normalize();
+
+
+      document
+        .querySelectorAll(
+          "[zombie-movement]"
+        )
+        .forEach(
+          (zombie) => {
+
+            if (
+              zombie.dataset.alive ===
+              "false"
+            ) {
+
+              return;
+
+            }
+
+
+            const zombiePosition =
+              new THREE.Vector3();
+
+
+            zombie.object3D.getWorldPosition(
+              zombiePosition
+            );
+
+
+            const toZombie =
+              zombiePosition
+                .clone()
+                .sub(
+                  cameraPosition
+                );
+
+
+            toZombie.y = 0;
+
+
+            const distance =
+              toZombie.length();
+
+
+            /*
+             * Fuera del rango de juego.
+             */
+
+            if (
+              distance < 0.1 ||
+              distance > 12
+            ) {
+
+              return;
+
+            }
+
+
+            toZombie.normalize();
+
+
+            const dot =
+              THREE.MathUtils.clamp(
+                cameraDirection.dot(
+                  toZombie
+                ),
+                -1,
+                1
+              );
+
+
+            const angle =
+              Math.acos(dot) *
+              THREE.MathUtils.RAD2DEG;
+
+
+            /*
+             * 20 grados de tolerancia.
+             */
+
+            if (
+              angle <= 20 &&
+              angle < smallestAngle
+            ) {
+
+              smallestAngle =
+                angle;
+
+              bestZombie =
+                zombie;
+
+            }
+
+          }
+        );
+
+
+      if (
+        bestZombie
+      ) {
+
+        matarZombie(
+          bestZombie
+        );
+
+      }
+
+    }
+
+
+    /* =========================================================
+       ELIMINAR ZOMBIE
+    ========================================================== */
+
+    function matarZombie(
+      zombie
+    ) {
+
+      if (!zombie) {
+        return;
+      }
+
+
+      /*
+       * Evitar doble impacto.
        */
 
       if (
-        distance <=
-        this.data.stopDistance
+        zombie.dataset.alive ===
+        "false"
       ) {
-
-        window.GAME.zombieReached(
-          this.el
-        );
 
         return;
 
@@ -1456,1471 +2941,144 @@ AFRAME.registerComponent(
 
 
       /*
-       * Normalizar.
+       * Marcar inmediatamente como muerto.
        */
 
-      this.direction.normalize();
+      zombie.dataset.alive =
+        "false";
 
 
       /*
-       * VELOCIDAD REAL EN METROS/SEGUNDO.
-       *
-       * Esto evita que la velocidad dependa
-       * directamente de FPS.
+       * Detener movimiento.
        */
 
-      const movement =
-        this.data.speed *
-        dt;
+      zombie.removeAttribute(
+        "zombie-movement"
+      );
 
 
       /*
-       * Convertimos movimiento mundial
-       * a espacio local del padre.
+       * =======================================================
+       * PUNTOS
+       * =======================================================
        */
 
-      const parent =
-        this.el.object3D.parent;
+      let points = 10;
 
 
-      if (parent) {
-
-        const localDirection =
-          parent.worldToLocal(
-            this.worldPosition.clone()
-              .add(
-                this.direction
-                  .clone()
-                  .multiplyScalar(
-                    movement
-                  )
-              )
-          );
-
-        this.el.object3D
-          .position.lerp(
-            localDirection,
-            1
-          );
-
-      } else {
-
-        this.el.object3D
-          .position.x +=
-          this.direction.x *
-          movement;
-
-        this.el.object3D
-          .position.z +=
-          this.direction.z *
-          movement;
-
-      }
-
-
-      /*
-       * Rotación.
-       */
-
-      this.targetRotation =
-        Math.atan2(
-          this.direction.x,
-          this.direction.z
-        );
-
-
-      /*
-       * Suavizar giro.
-       */
-
-      let current =
-        this.el.object3D.rotation.y;
-
-      let difference =
-        this.targetRotation -
-        current;
-
-
-      while (
-        difference > Math.PI
+      if (
+        GAME.doubleDamage
       ) {
 
-        difference -=
-          Math.PI * 2;
+        points *= 2;
 
       }
 
 
-      while (
-        difference < -Math.PI
+      if (
+        GAME.nuclearActive
       ) {
 
-        difference +=
-          Math.PI * 2;
+        points *= 2;
 
       }
 
 
-      this.el.object3D.rotation.y +=
-        difference *
-        Math.min(
-          1,
-          dt * 8
-        );
+      GAME.score +=
+        points;
 
-    }
 
-  }
-);
-
-
-/* ============================================================
-   GAME
-   ============================================================ */
-
-(() => {
-
-  "use strict";
-
-
-  /* ==========================================================
-     REFERENCIAS
-     ========================================================== */
-
-  const scene =
-    document.getElementById(
-      "scene"
-    );
-
-  const camera =
-    document.getElementById(
-      "camera"
-    );
-
-  const arena =
-    document.getElementById(
-      "arena"
-    );
-
-  const video =
-    document.getElementById(
-      "cameraVideo"
-    );
-
-
-  const startScreen =
-    document.getElementById(
-      "startScreen"
-    );
-
-  const instructionsScreen =
-    document.getElementById(
-      "instructionsScreen"
-    );
-
-
-  const calibration =
-    document.getElementById(
-      "calibration"
-    );
-
-
-  const calibrationTitle =
-    document.getElementById(
-      "calibrationTitle"
-    );
-
-
-  const calibrationText =
-    document.getElementById(
-      "calibrationText"
-    );
-
-
-  const systemStatus =
-    document.getElementById(
-      "systemStatus"
-    );
-
-
-  const levelMode =
-    document.getElementById(
-      "levelMode"
-    );
-
-
-  const survivalMode =
-    document.getElementById(
-      "survivalMode"
-    );
-
-
-  const startButton =
-    document.getElementById(
-      "startButton"
-    );
-
-
-  const instructionsButton =
-    document.getElementById(
-      "instructionsButton"
-    );
-
-
-  const closeInstructions =
-    document.getElementById(
-      "closeInstructions"
-    );
-
-
-  const hud =
-    document.getElementById(
-      "hud"
-    );
-
-
-  const scoreElement =
-    document.getElementById(
-      "score"
-    );
-
-
-  const livesElement =
-    document.getElementById(
-      "lives"
-    );
-
-
-  const levelElement =
-    document.getElementById(
-      "level"
-    );
-
-
-  const crosshair =
-    document.getElementById(
-      "crosshair"
-    );
-
-
-  const shootButton =
-    document.getElementById(
-      "shootButton"
-    );
-
-
-  const message =
-    document.getElementById(
-      "message"
-    );
-
-
-  const boosters =
-    document.getElementById(
-      "boosters"
-    );
-
-
-  const weaponBooster =
-    document.getElementById(
-      "weaponBooster"
-    );
-
-
-  const nuclearBooster =
-    document.getElementById(
-      "nuclearBooster"
-    );
-
-
-  const xrStatus =
-    document.getElementById(
-      "xrStatus"
-    );
-
-
-  /* ==========================================================
-     ESTADO
-     ========================================================== */
-
-  const GAME = {
-
-    mode: "levels",
-
-    running: false,
-
-    gameOver: false,
-
-    score: 0,
-
-    lives: 3,
-
-    level: 1,
-
-    zombies: [],
-
-    maxZombies: 10,
-
-    spawnTimer: null,
-
-    survivalTimer: null,
-
-    waveNumber: 0,
-
-    cameraStream: null,
-
-    usingXR: false,
-
-    fallbackCamera: false,
-
-    xrSession: null,
-
-    calibrationDone: false,
-
-    weaponLevel: 0,
-
-    nuclearReady: false,
-
-    lastShot: 0,
-
-    zombieId: 0,
-
-    spawnHistory: [],
-
-    audioStarted: false,
-
-    shotHits: 0,
-
-    shotMisses: 0
-
-  };
-
-
-  window.GAME =
-    GAME;
-
-
-  /* ==========================================================
-     AUDIO
-     ========================================================== */
-
-  const music =
-    new Audio(
-      "fondo.mp3"
-    );
-
-  music.loop = true;
-
-  music.volume = 0.34;
-
-
-  const shotSound =
-    new Audio(
-      "disparo.mp3"
-    );
-
-  shotSound.volume = .72;
-
-
-  const buttonSound =
-    new Audio(
-      "boton.mp3"
-    );
-
-  buttonSound.volume = .55;
-
-
-  function playButton() {
-
-    try {
-
-      buttonSound.currentTime = 0;
-
-      buttonSound.play()
-        .catch(() => {});
-
-    } catch(e) {}
-
-  }
-
-
-  function playShot() {
-
-    try {
-
-      shotSound.currentTime = 0;
-
-      shotSound.play()
-        .catch(() => {});
-
-    } catch(e) {}
-
-  }
-
-
-  function startMusic() {
-
-    try {
-
-      music.play()
-        .then(() => {
-
-          GAME.audioStarted =
-            true;
-
-        })
-        .catch(() => {});
-
-    } catch(e) {}
-
-  }
-
-
-  /* ==========================================================
-     MENSAJES
-     ========================================================== */
-
-  let messageTimer = null;
-
-
-  function showMessage(
-    text,
-    duration = 1200
-  ) {
-
-    message.textContent =
-      text;
-
-    message.classList.add(
-      "show"
-    );
-
-
-    clearTimeout(
-      messageTimer
-    );
-
-
-    messageTimer =
-      setTimeout(
-        () => {
-
-          message.classList.remove(
-            "show"
-          );
-
-        },
-        duration
-      );
-
-  }
-
-
-  /* ==========================================================
-     HUD
-     ========================================================== */
-
-  function updateHUD() {
-
-    scoreElement.textContent =
-      GAME.score;
-
-    levelElement.textContent =
-      GAME.level;
-
-
-    let hearts = "";
-
-    for (
-      let i = 0;
-      i < GAME.lives;
-      i++
-    ) {
-
-      hearts += "❤️";
-
-    }
-
-
-    for (
-      let i = GAME.lives;
-      i < 3;
-      i++
-    ) {
-
-      hearts += "🖤";
-
-    }
-
-
-    livesElement.textContent =
-      hearts;
-
-
-    /*
-     * BOOSTERS
-     */
-
-    if (
-      GAME.weaponLevel >= 1
-    ) {
-
-      weaponBooster.classList.remove(
-        "locked"
-      );
-
-      weaponBooster.innerHTML =
-        "<strong>🔫</strong>LV " +
-        GAME.weaponLevel;
-
-    }
-
-
-    if (
-      GAME.score >= 250
-    ) {
-
-      GAME.nuclearReady =
-        true;
-
-      nuclearBooster.classList.remove(
-        "locked"
-      );
-
-    }
-
-  }
-
-
-  /* ==========================================================
-     WEBXR
-     ========================================================== */
-
-  async function detectXR() {
-
-    if (
-      !window.isSecureContext
-    ) {
-
-      systemStatus.textContent =
-        "⚠️ El sitio no está en un contexto seguro. Se utilizará modo cámara.";
-
-      systemStatus.className =
-        "status warning";
-
-      return false;
-
-    }
-
-
-    if (
-      !navigator.xr
-    ) {
-
-      systemStatus.textContent =
-        "📱 WebXR no está disponible. Se utilizará automáticamente el modo cámara.";
-
-      systemStatus.className =
-        "status warning";
-
-      return false;
-
-    }
-
-
-    try {
-
-      const supported =
-        await navigator.xr
-          .isSessionSupported(
-            "immersive-ar"
-          );
-
-
-      if (supported) {
-
-        systemStatus.textContent =
-          "✓ AR compatible detectada. Se intentará utilizar AR espacial.";
-
-        systemStatus.className =
-          "status ok";
-
-        return true;
-
-      }
-
-
-      systemStatus.textContent =
-        "📱 AR espacial no está disponible. Se utilizará el modo cámara compatible.";
-
-      systemStatus.className =
-        "status warning";
-
-      return false;
-
-    } catch(error) {
-
-      console.warn(
-        "XR:",
-        error
-      );
-
-
-      systemStatus.textContent =
-        "📱 Se utilizará el modo cámara compatible.";
-
-      systemStatus.className =
-        "status warning";
-
-
-      return false;
-
-    }
-
-  }
-
-
-  /* ==========================================================
-     CÁMARA FALLBACK
-     ========================================================== */
-
-  async function startFallbackCamera() {
-
-    GAME.fallbackCamera =
-      true;
-
-    GAME.usingXR =
-      false;
-
-
-    video.style.display =
-      "block";
-
-
-    if (
-      !navigator.mediaDevices ||
-      !navigator.mediaDevices.getUserMedia
-    ) {
-
-      showMessage(
-        "Tu navegador no permite acceder a la cámara.",
-        5000
-      );
-
-      return false;
-
-    }
-
-
-    try {
-
-      GAME.cameraStream =
-        await navigator
-          .mediaDevices
-          .getUserMedia({
-
-            video: {
-
-              facingMode: {
-                ideal: "environment"
-              },
-
-              width: {
-                ideal: 1920
-              },
-
-              height: {
-                ideal: 1080
-              },
-
-              frameRate: {
-                ideal: 30
-              }
-
-            },
-
-            audio: false
-
-          });
-
-
-      video.srcObject =
-        GAME.cameraStream;
-
-
-      await video.play();
-
-
-      return true;
-
-
-    } catch(error) {
-
-      console.error(
-        "Cámara:",
-        error
-      );
-
-
-      video.style.display =
-        "none";
-
-
-      showMessage(
-        "No se pudo abrir la cámara. Revisa los permisos del navegador.",
-        6000
-      );
-
-
-      return false;
-
-    }
-
-  }
-
-
-  /* ==========================================================
-     INTENTO AR REAL
-     ========================================================== */
-
-  async function tryXR() {
-
-    if (
-      !navigator.xr
-    ) {
-
-      return false;
-
-    }
-
-
-    try {
-
-      const session =
-        await navigator.xr
-          .requestSession(
-            "immersive-ar",
-            {
-
-              requiredFeatures: [
-                "local"
-              ],
-
-              optionalFeatures: [
-                "hit-test",
-                "local-floor",
-                "dom-overlay"
-              ]
-
-            }
-          );
+      GAME.kills++;
 
 
       /*
-       * IMPORTANTE:
-       *
-       * Guardamos la sesión para saber
-       * si realmente entró.
+       * =======================================================
+       * ANIMACIÓN DE MUERTE
+       * =======================================================
        */
 
-      GAME.xrSession =
-        session;
+      zombie.setAttribute(
+        "animation",
+        {
+          property: "scale",
 
-      GAME.usingXR =
-        true;
+          to: "0.01 0.01 0.01",
 
-      GAME.fallbackCamera =
-        false;
+          dur: 180,
 
-
-      session.addEventListener(
-        "end",
-        () => {
-
-          GAME.xrSession =
-            null;
-
-          GAME.usingXR =
-            false;
-
+          easing: "easeInQuad"
         }
       );
 
 
-      return true;
+      /*
+       * =======================================================
+       * FEEDBACK
+       * =======================================================
+       */
 
-
-    } catch(error) {
-
-      console.warn(
-        "No se pudo iniciar AR:",
-        error
+      showMessage(
+        "+" + points
       );
 
 
-      GAME.xrSession =
-        null;
-
-      GAME.usingXR =
-        false;
-
-
-      return false;
-
-    }
-
-  }
-
-
-  /* ==========================================================
-     PREPARAR ENTORNO
-     ========================================================== */
-
-  async function calibrateEnvironment() {
-
-    calibration.style.display =
-      "flex";
-
-
-    calibrationTitle.textContent =
-      "Mapeando entorno";
-
-
-    calibrationText.textContent =
-      "Analizando el espacio..." ;
-
-
-    await wait(700);
-
-
-    if (
-      GAME.usingXR
-    ) {
-
-      calibrationText.textContent =
-        "Busca una superficie plana y estable.";
-
-      await wait(1500);
-
-
-      calibrationText.textContent =
-        "✓ Seguimiento espacial preparado.";
-
-      await wait(700);
-
-
-    } else {
-
-      calibrationText.textContent =
-        "Preparando el espacio virtual.";
-
-      await wait(900);
-
-
-      calibrationText.textContent =
-        "✓ Entorno preparado.";
-
-      await wait(600);
-
-    }
-
-
-    GAME.calibrationDone =
-      true;
-
-
-    calibration.style.display =
-      "none";
-
-  }
-
-
-  function wait(ms) {
-
-    return new Promise(
-      resolve =>
-        setTimeout(
-          resolve,
-          ms
-        )
-    );
-
-  }
-
-
-  /* ==========================================================
-     ARENA
-     ========================================================== */
-
-  function buildArena() {
-
-    /*
-     * El punto de juego se coloca delante
-     * del usuario.
-     */
-
-    arena.setAttribute(
-      "position",
-      "0 0 -3"
-    );
-
-
-    /*
-     * PLATAFORMA
-     */
-
-    const floor =
-      document.createElement(
-        "a-cylinder"
-      );
-
-
-    floor.setAttribute(
-      "radius",
-      "3.8"
-    );
-
-
-    floor.setAttribute(
-      "height",
-      ".035"
-    );
-
-
-    floor.setAttribute(
-      "position",
-      "0 0 0"
-    );
-
-
-    floor.setAttribute(
-      "material",
-      `
-        color:#171717;
-        opacity:.30;
-        transparent:true;
-        roughness:1;
-      `
-    );
-
-
-    arena.appendChild(
-      floor
-    );
-
-
-    /*
-     * BORDE
-     */
-
-    const ring =
-      document.createElement(
-        "a-torus"
-      );
-
-
-    ring.setAttribute(
-      "radius",
-      "3.65"
-    );
-
-
-    ring.setAttribute(
-      "radius-tubular",
-      ".035"
-    );
-
-
-    ring.setAttribute(
-      "rotation",
-      "90 0 0"
-    );
-
-
-    ring.setAttribute(
-      "material",
-      `
-        color:#e02020;
-        opacity:.72;
-        transparent:true;
-      `
-    );
-
-
-    arena.appendChild(
-      ring
-    );
-
-
-    /*
-     * MARCAS DE DIRECCIÓN
-     */
-
-    for (
-      let i = 0;
-      i < 8;
-      i++
-    ) {
-
-      const angle =
-        i *
-        Math.PI / 4;
-
-
-      const marker =
-        document.createElement(
-          "a-box"
-        );
-
-
-      marker.setAttribute(
-        "width",
-        ".08"
-      );
-
-
-      marker.setAttribute(
-        "height",
-        ".03"
-      );
-
-
-      marker.setAttribute(
-        "depth",
-        ".35"
-      );
-
-
-      marker.setAttribute(
-        "position",
-        `
-          ${Math.sin(angle) * 3.1}
-          .03
-          ${Math.cos(angle) * 3.1}
-        `
-      );
-
-
-      marker.setAttribute(
-        "rotation",
-        `0 ${angle * 180 / Math.PI} 0`
-      );
-
-
-      marker.setAttribute(
-        "material",
-        `
-          color:#9d0000;
-          opacity:.65;
-          transparent:true;
-        `
-      );
-
-
-      arena.appendChild(
-        marker
-      );
-
-    }
-
-  }
-
-
-  /* ==========================================================
-     SPAWN
-     ========================================================== */
-
-  function getSpawnPosition() {
-
-    /*
-     * SEMICIRCULO FRONTAL.
-     *
-     * Nunca:
-     *
-     * 180° detrás
-     *
-     * Solo:
-     *
-     * -78° ... +78°
-     */
-
-    let angle;
-
-    let attempts = 0;
-
-
-    do {
-
-      angle =
-        (
-          -78 +
-          Math.random() * 156
-        ) *
-        Math.PI / 180;
-
-
-      attempts++;
-
-
-    } while (
-      tooCloseToPreviousSpawn(
-        angle
-      ) &&
-      attempts < 15
-    );
-
-
-    GAME.spawnHistory.push(
-      angle
-    );
-
-
-    if (
-      GAME.spawnHistory.length > 12
-    ) {
-
-      GAME.spawnHistory.shift();
-
-    }
-
-
-    /*
-     * Distancia.
-     */
-
-    const distance =
-      2.8 +
-      Math.random() * 1.7;
-
-
-    return {
-
-      x:
-        Math.sin(angle) *
-        distance,
-
-      z:
-        -Math.cos(angle) *
-        distance
-
-    };
-
-  }
-
-
-  function tooCloseToPreviousSpawn(
-    angle
-  ) {
-
-    for (
-      const previous of
-      GAME.spawnHistory
-    ) {
-
-      const difference =
-        Math.abs(
-          angle -
-          previous
-        );
-
+      /*
+       * =======================================================
+       * NIVELES
+       * =======================================================
+       */
 
       if (
-        difference < .32
+        GAME.mode === "levels"
       ) {
 
-        return true;
+        comprobarNivel();
 
       }
 
-    }
+
+      updateHUD();
 
 
-    return false;
+      /*
+       * =======================================================
+       * ELIMINAR DEL DOM
+       * =======================================================
+       */
 
-  }
+      setTimeout(
+        () => {
 
+          if (
+            zombie &&
+            zombie.parentNode
+          ) {
 
-  /* ==========================================================
-     CREAR ZOMBIE
-     ========================================================== */
+            zombie.parentNode.removeChild(
+              zombie
+            );
 
-  function spawnZombie(
-    options = {}
-  ) {
+          }
 
-    if (
-      !GAME.running ||
-      GAME.gameOver
-    ) {
-
-      return null;
-
-    }
-
-
-    if (
-      GAME.zombies.length >=
-      GAME.maxZombies
-    ) {
-
-      return null;
+        },
+        210
+      );
 
     }
 
 
-    const pos =
-      getSpawnPosition();
+    /* =========================================================
+       ZOMBIE LLEGA AL JUGADOR
+    ========================================================== */
 
-
-    const zombie =
-      document.createElement(
-        "a-entity"
-      );
-
-
-    zombie.classList.add(
-      "zombie"
-    );
-
-
-    zombie.dataset.id =
-      ++GAME.zombieId;
-
-
-    zombie.dataset.alive =
-      "true";
-
-
-    zombie.dataset.hit =
-      "false";
-
-
-    zombie.dataset.speed =
-      options.speed ||
-      (
-        .62 +
-        Math.random() * .16 +
-        GAME.level * .035
-      );
-
-
-    /*
-     * POSICIÓN.
-     */
-
-    zombie.setAttribute(
-      "position",
-      `
-        ${pos.x}
-        0
-        ${pos.z}
-      `
-    );
-
-
-    /*
-     * ESCALA.
-     *
-     * Más grande que antes para que
-     * sea claramente visible.
-     */
-
-    const scale =
-      options.scale ||
-      (
-        .78 +
-        Math.min(
-          GAME.level * .015,
-          .18
-        )
-      );
-
-
-    zombie.setAttribute(
-      "scale",
-      `${scale} ${scale} ${scale}`
-    );
-
-
-    /*
-     * MODELO.
-     */
-
-    zombie.setAttribute(
-      "gltf-model",
-      "#zombieModel"
-    );
-
-
-    /*
-     * MOVIMIENTO.
-     */
-
-    zombie.setAttribute(
-      "zombie-movement",
-      `
-        speed:${zombie.dataset.speed};
-        stopDistance:.72;
-      `
-    );
-
-
-    /*
-     * ANIMACIÓN.
-     *
-     * Si el GLB tiene animaciones,
-     * A-Frame intentará reproducirlas.
-     */
-
-    zombie.setAttribute(
-      "animation-mixer",
-      "clip:*; loop:repeat; timeScale:1"
-    );
-
-
-    /*
-     * Orientación inicial.
-     */
-
-    const angle =
-      Math.atan2(
-        -pos.x,
-        -pos.z
-      );
-
-
-    zombie.object3D.rotation.y =
-      angle;
-
-
-    arena.appendChild(
+    function zombieHitsPlayer(
       zombie
-    );
-
-
-    GAME.zombies.push(
-      zombie
-    );
-
-
-    /*
-     * Preparar raycast después
-     * de cargar el modelo.
-     */
-
-    zombie.addEventListener(
-      "model-loaded",
-      () => {
-
-        markZombieMeshes(
-          zombie
-        );
-
-      }
-    );
-
-
-    zombie.addEventListener(
-      "model-error",
-      () => {
-
-        console.error(
-          "No se pudo cargar zombie.glb"
-        );
-
-      }
-    );
-
-
-    return zombie;
-
-  }
-
-
-  /* ==========================================================
-     MARCAR MESHES
-     ========================================================== */
-
-  function markZombieMeshes(
-    zombie
-  ) {
-
-    if (
-      !zombie.object3D
     ) {
-
-      return;
-
-    }
-
-
-    zombie.object3D.traverse(
-      child => {
-
-        child.userData =
-          child.userData ||
-          {};
-
-        child.userData.zombieEntity =
-          zombie;
-
-      }
-    );
-
-  }
-
-
-  /* ==========================================================
-     ELIMINAR ZOMBIE
-     ========================================================== */
-
-  function removeZombie(
-    zombie
-  ) {
-
-    const index =
-      GAME.zombies.indexOf(
-        zombie
-      );
-
-
-    if (
-      index >= 0
-    ) {
-
-      GAME.zombies.splice(
-        index,
-        1
-      );
-
-    }
-
-
-    if (
-      zombie.parentNode
-    ) {
-
-      zombie.parentNode
-        .removeChild(
-          zombie
-        );
-
-    }
-
-  }
-
-
-  /* ==========================================================
-     ZOMBIE LLEGÓ
-     ========================================================== */
-
-  GAME.zombieReached =
-    function(zombie) {
 
       if (
         !zombie ||
-        zombie.dataset.alive !==
-        "true"
+        zombie.dataset.alive ===
+          "false"
       ) {
 
         return;
@@ -2932,22 +3090,40 @@ AFRAME.registerComponent(
         "false";
 
 
-      removeZombie(
-        zombie
+      zombie.removeAttribute(
+        "zombie-movement"
       );
 
 
       GAME.lives--;
 
 
+      showMessage(
+        "¡Te alcanzó un zombie!"
+      );
+
+
       updateHUD();
 
 
-      showMessage(
-        "🧟 ¡UN ZOMBIE TE ALCANZÓ!",
-        900
-      );
+      /*
+       * Quitar zombie.
+       */
 
+      if (
+        zombie.parentNode
+      ) {
+
+        zombie.parentNode.removeChild(
+          zombie
+        );
+
+      }
+
+
+      /*
+       * GAME OVER
+       */
 
       if (
         GAME.lives <= 0
@@ -2957,1093 +3133,111 @@ AFRAME.registerComponent(
 
       }
 
-    };
-
-
-  /* ==========================================================
-     DISPARO
-     ========================================================== */
-
-  function shoot() {
-
-    if (
-      !GAME.running ||
-      GAME.gameOver
-    ) {
-
-      return;
-
     }
 
 
-    const now =
-      performance.now();
-
-
-    /*
-     * Cadencia.
-     */
-
-    const cooldown =
-      GAME.weaponLevel >= 2
-        ? 140
-        : GAME.weaponLevel >= 1
-          ? 180
-          : 240;
-
-
-    if (
-      now -
-      GAME.lastShot <
-      cooldown
-    ) {
-
-      return;
-
-    }
-
-
-    GAME.lastShot =
-      now;
-
-
-    playShot();
-
-
-    /*
-     * Buscar objetivo.
-     */
-
-    const target =
-      findTarget();
-
-
-    if (
-      target
-    ) {
-
-      killZombie(
-        target
-      );
-
-      GAME.shotHits++;
-
-      return;
-
-    }
-
-
-    GAME.shotMisses++;
-
-
-    showMessage(
-      "💨 ¡FALLASTE!",
-      500
-    );
-
-  }
-
-
-  /* ==========================================================
-     DETECCIÓN DE OBJETIVO
-     ========================================================== */
-
-  function findTarget() {
-
-    if (
-      GAME.zombies.length === 0
-    ) {
-
-      return null;
-
-    }
-
-
-    const threeCamera =
-      camera.object3D;
-
-
-    /*
-     * ORIGEN.
-     */
-
-    const origin =
-      new THREE.Vector3();
-
-
-    threeCamera.getWorldPosition(
-      origin
-    );
-
-
-    /*
-     * DIRECCIÓN REAL DE LA CÁMARA.
-     *
-     * En THREE, getWorldDirection
-     * devuelve la dirección frontal.
-     */
-
-    const direction =
-      new THREE.Vector3();
-
-
-    threeCamera.getWorldDirection(
-      direction
-    );
-
-
-    direction.normalize();
-
-
-    /* ======================================================
-       1. RAYCAST DIRECTO
-       ====================================================== */
-
-    const raycaster =
-      new THREE.Raycaster();
-
-
-    raycaster.set(
-      origin,
-      direction
-    );
-
-
-    const meshes = [];
-
-
-    for (
-      const zombie of
-      GAME.zombies
-    ) {
-
-      if (
-        !zombie.object3D ||
-        zombie.dataset.alive !==
-        "true"
-      ) {
-
-        continue;
-
-      }
-
-
-      zombie.object3D.traverse(
-        child => {
-
-          if (
-            child.isMesh
-          ) {
-
-            meshes.push(
-              child
-            );
-
-          }
-
-        }
-      );
-
-    }
-
-
-    const hits =
-      raycaster.intersectObjects(
-        meshes,
-        true
-      );
-
-
-    if (
-      hits.length > 0
-    ) {
-
-      for (
-        const hit of hits
-      ) {
-
-        let node =
-          hit.object;
-
-
-        while (
-          node
-        ) {
-
-          if (
-            node.userData &&
-            node.userData.zombieEntity
-          ) {
-
-            const zombie =
-              node.userData
-                .zombieEntity;
-
-
-            if (
-              zombie.dataset.alive ===
-              "true"
-            ) {
-
-              return zombie;
-
-            }
-
-          }
-
-
-          node =
-            node.parent;
-
-        }
-
-      }
-
-    }
-
-
-    /* ======================================================
-       2. DETECCIÓN ANGULAR
-       ====================================================== */
-
-    let best =
-      null;
-
-
-    let bestScore =
-      Infinity;
-
-
-    for (
-      const zombie of
-      GAME.zombies
-    ) {
-
-      if (
-        zombie.dataset.alive !==
-        "true"
-      ) {
-
-        continue;
-
-      }
-
-
-      const world =
-        new THREE.Vector3();
-
-
-      zombie.object3D
-        .getWorldPosition(
-          world
-        );
-
-
-      const toZombie =
-        world.clone()
-          .sub(origin);
-
-
-      const distance =
-        toZombie.length();
-
-
-      /*
-       * Dirección horizontal.
-       */
-
-      toZombie.y =
-        0;
-
-
-      const flatDirection =
-        direction.clone();
-
-      flatDirection.y =
-        0;
+    /* =========================================================
+       COMPROBAR NIVEL
+    ========================================================== */
+
+    function comprobarNivel() {
+
+      const newLevel =
+        Math.floor(
+          GAME.score / 50
+        ) + 1;
 
 
       if (
-        toZombie.lengthSq() <
-        .0001
-      ) {
-
-        continue;
-
-      }
-
-
-      toZombie.normalize();
-
-      flatDirection.normalize();
-
-
-      const dot =
-        THREE.MathUtils.clamp(
-          flatDirection.dot(
-            toZombie
-          ),
-          -1,
-          1
-        );
-
-
-      const angle =
-        Math.acos(
-          dot
-        );
-
-
-      /*
-       * Tolerancia.
-       *
-       * Se amplía con upgrades.
-       */
-
-      const tolerance =
-        THREE.MathUtils.degToRad(
-          GAME.weaponLevel >= 2
-            ? 24
-            : GAME.weaponLevel >= 1
-              ? 20
-              : 17
-        );
-
-
-      if (
-        angle >
-        tolerance
-      ) {
-
-        continue;
-
-      }
-
-
-      /*
-       * Priorizamos:
-       *
-       * 1. ángulo
-       * 2. distancia
-       */
-
-      const candidateScore =
-        angle * 5 +
-        distance * .015;
-
-
-      if (
-        candidateScore <
-        bestScore
-      ) {
-
-        bestScore =
-          candidateScore;
-
-        best =
-          zombie;
-
-      }
-
-    }
-
-
-    if (
-      best
-    ) {
-
-      return best;
-
-    }
-
-
-    /* ======================================================
-       3. ÚLTIMO RESPALDO
-       ======================================================
-
-       Para evitar el problema del primer zombie
-       imposible de golpear, aceptamos un objetivo
-       cercano al centro si está razonablemente
-       delante del jugador.
-       ====================================================== */
-
-    let fallback =
-      null;
-
-
-    let fallbackScore =
-      Infinity;
-
-
-    for (
-      const zombie of
-      GAME.zombies
-    ) {
-
-      if (
-        zombie.dataset.alive !==
-        "true"
-      ) {
-
-        continue;
-
-      }
-
-
-      const world =
-        new THREE.Vector3();
-
-
-      zombie.object3D
-        .getWorldPosition(
-          world
-        );
-
-
-      const to =
-        world.clone()
-          .sub(origin);
-
-
-      const distance =
-        to.length();
-
-
-      if (
-        distance > 7
-      ) {
-
-        continue;
-
-      }
-
-
-      to.normalize();
-
-
-      const dot =
-        direction.dot(
-          to
-        );
-
-
-      /*
-       * Solo objetivos delante.
-       */
-
-      if (
-        dot < .88
-      ) {
-
-        continue;
-
-      }
-
-
-      const score =
-        (1 - dot) * 10 +
-        distance * .02;
-
-
-      if (
-        score <
-        fallbackScore
-      ) {
-
-        fallbackScore =
-          score;
-
-        fallback =
-          zombie;
-
-      }
-
-    }
-
-
-    return fallback;
-
-  }
-
-
-  /* ==========================================================
-     MATAR ZOMBIE
-     ========================================================== */
-
-  function killZombie(
-    zombie
-  ) {
-
-    if (
-      !zombie ||
-      zombie.dataset.alive !==
-      "true"
-    ) {
-
-      return;
-
-    }
-
-
-    zombie.dataset.alive =
-      "false";
-
-
-    /*
-     * Puntos.
-     */
-
-    GAME.score +=
-      GAME.weaponLevel >= 1
-        ? 15
-        : 10;
-
-
-    updateHUD();
-
-
-    /*
-     * Animación.
-     */
-
-    zombie.removeAttribute(
-      "zombie-movement"
-    );
-
-
-    zombie.setAttribute(
-      "animation__death",
-      `
-        property:scale;
-        to:0.05 0.05 0.05;
-        dur:220;
-        easing:easeInBack;
-      `
-    );
-
-
-    showMessage(
-      "💥 ¡ZOMBIE ELIMINADO!",
-      600
-    );
-
-
-    setTimeout(
-      () => {
-
-        removeZombie(
-          zombie
-        );
-
-      },
-      230
-    );
-
-
-    /*
-     * LEVEL UP.
-     */
-
-    if (
-      GAME.mode ===
-      "levels" &&
-      GAME.score >=
-      GAME.level * 50
-    ) {
-
-      levelUp();
-
-    }
-
-
-    /*
-     * Booster de arma.
-     */
-
-    if (
-      GAME.score >= 100 &&
-      GAME.weaponLevel === 0
-    ) {
-
-      GAME.weaponLevel =
-        1;
-
-      updateHUD();
-
-      showMessage(
-        "🔫 ¡MEJORA DE ARMA DESBLOQUEADA!",
-        1800
-      );
-
-    }
-
-  }
-
-
-  /* ==========================================================
-     NIVEL
-     ========================================================== */
-
-  function levelUp() {
-
-    GAME.level++;
-
-    updateHUD();
-
-
-    showMessage(
-      `🔥 NIVEL ${GAME.level}`,
-      1400
-    );
-
-
-    /*
-     * Más zombies y más velocidad.
-     */
-
-    GAME.maxZombies =
-      Math.min(
-        14,
-        7 +
+        newLevel >
         GAME.level
-      );
-
-
-    setTimeout(
-      () => {
-
-        spawnWave();
-
-      },
-      650
-    );
-
-  }
-
-
-  /* ==========================================================
-     OLEADA
-     ========================================================== */
-
-  function spawnWave() {
-
-    if (
-      !GAME.running ||
-      GAME.gameOver
-    ) {
-
-      return;
-
-    }
-
-
-    GAME.waveNumber++;
-
-
-    const count =
-      Math.min(
-        GAME.mode === "survival"
-          ? 3 +
-            Math.floor(
-              GAME.level * .8
-            )
-          : 3 +
-            GAME.level,
-        9
-      );
-
-
-    for (
-      let i = 0;
-      i < count;
-      i++
-    ) {
-
-      setTimeout(
-        () => {
-
-          if (
-            GAME.running &&
-            !GAME.gameOver
-          ) {
-
-            spawnZombie();
-
-          }
-
-        },
-        i * 550
-      );
-
-    }
-
-  }
-
-
-  /* ==========================================================
-     SUPERVIVENCIA
-     ========================================================== */
-
-  function startSurvival() {
-
-    clearInterval(
-      GAME.survivalTimer
-    );
-
-
-    GAME.survivalTimer =
-      setInterval(
-        () => {
-
-          if (
-            !GAME.running ||
-            GAME.gameOver
-          ) {
-
-            return;
-
-          }
-
-
-          GAME.level++;
-
-
-          updateHUD();
-
-
-          showMessage(
-            `☣ OLEADA ${GAME.level}`,
-            1400
-          );
-
-
-          spawnWave();
-
-
-        },
-        15000
-      );
-
-  }
-
-
-  /* ==========================================================
-     BOOSTER ARMA
-     ========================================================== */
-
-  weaponBooster.addEventListener(
-    "click",
-    () => {
-
-      playButton();
-
-
-      if (
-        GAME.score < 100
       ) {
+
+        GAME.level =
+          newLevel;
+
 
         showMessage(
-          "🔒 Se desbloquea con 100 puntos.",
-          1200
+          "¡NIVEL " +
+          GAME.level +
+          "!"
         );
 
-        return;
+
+        /*
+         * Cada nivel genera zombies
+         * un poco más rápido.
+         */
+
+        GAME.spawnInterval =
+          Math.max(
+            1200,
+            3200 -
+              (GAME.level - 1) *
+              220
+          );
 
       }
 
 
-      GAME.weaponLevel++;
-
-
-      if (
-        GAME.weaponLevel > 2
-      ) {
-
-        GAME.weaponLevel = 2;
-
-      }
-
-
-      updateHUD();
-
-
-      showMessage(
-        GAME.weaponLevel === 1
-          ? "🔫 ARMA MEJORADA"
-          : "🔫 ARMA AL MÁXIMO",
-        1400
-      );
-
-    }
-  );
-
-
-  /* ==========================================================
-     BOOSTER NUCLEAR
-     ========================================================== */
-
-  nuclearBooster.addEventListener(
-    "click",
-    () => {
-
-      playButton();
-
+      /*
+       * Booster de arma.
+       */
 
       if (
-        GAME.score < 250
+        GAME.score >= 100 &&
+        !GAME.weaponBoosterReady &&
+        !GAME.doubleDamage
       ) {
+
+        GAME.weaponBoosterReady =
+          true;
+
+        weaponBooster.disabled =
+          false;
 
         showMessage(
-          "🔒 Necesitas 250 puntos.",
-          1200
+          "🔥 Booster x2 desbloqueado"
         );
 
-        return;
-
       }
 
 
       /*
-       * Eliminar todos los zombies.
-       */
-
-      const targets =
-        [...GAME.zombies];
-
-
-      for (
-        const zombie of
-        targets
-      ) {
-
-        if (
-          zombie.dataset.alive ===
-          "true"
-        ) {
-
-          zombie.dataset.alive =
-            "false";
-
-
-          removeZombie(
-            zombie
-          );
-
-        }
-
-      }
-
-
-      GAME.score +=
-        targets.length * 5;
-
-
-      updateHUD();
-
-
-      showMessage(
-        "☢️ ¡ATAQUE NUCLEAR!",
-        1800
-      );
-
-
-      /*
-       * Solo una vez.
-       */
-
-      nuclearBooster.classList.add(
-        "locked"
-      );
-
-
-      GAME.nuclearReady =
-        false;
-
-    }
-  );
-
-
-  /* ==========================================================
-     MODO NIVELES
-     ========================================================== */
-
-  levelMode.addEventListener(
-    "click",
-    () => {
-
-      playButton();
-
-
-      GAME.mode =
-        "levels";
-
-
-      levelMode.classList.add(
-        "selected"
-      );
-
-
-      survivalMode.classList.remove(
-        "selected"
-      );
-
-    }
-  );
-
-
-  /* ==========================================================
-     MODO SUPERVIVENCIA
-     ========================================================== */
-
-  survivalMode.addEventListener(
-    "click",
-    () => {
-
-      playButton();
-
-
-      GAME.mode =
-        "survival";
-
-
-      survivalMode.classList.add(
-        "selected"
-      );
-
-
-      levelMode.classList.remove(
-        "selected"
-      );
-
-    }
-  );
-
-
-  /* ==========================================================
-     INSTRUCCIONES
-     ========================================================== */
-
-  instructionsButton.addEventListener(
-    "click",
-    () => {
-
-      playButton();
-
-      startScreen.classList.add(
-        "hidden"
-      );
-
-      instructionsScreen.classList.remove(
-        "hidden"
-      );
-
-    }
-  );
-
-
-  closeInstructions.addEventListener(
-    "click",
-    () => {
-
-      playButton();
-
-      instructionsScreen.classList.add(
-        "hidden"
-      );
-
-      startScreen.classList.remove(
-        "hidden"
-      );
-
-    }
-  );
-
-
-  /* ==========================================================
-     INICIAR
-     ========================================================== */
-
-  startButton.addEventListener(
-    "click",
-    async () => {
-
-      playButton();
-
-      startMusic();
-
-
-      if (
-        GAME.running
-      ) {
-
-        return;
-
-      }
-
-
-      /*
-       * Detectamos XR.
-       */
-
-      const xr =
-        await detectXR();
-
-
-      /*
-       * Intentar XR.
-       *
-       * Si falla, NO se detiene el juego.
+       * Booster nuclear.
        */
 
       if (
-        xr
+        GAME.score >= 250 &&
+        !GAME.nuclearBoosterReady &&
+        !GAME.nuclearActive
       ) {
 
-        const started =
-          await tryXR();
+        GAME.nuclearBoosterReady =
+          true;
 
+        nuclearBooster.disabled =
+          false;
 
-        if (
-          started
-        ) {
-
-          xrStatus.style.display =
-            "block";
-
-          xrStatus.textContent =
-            "✓ AR ESPACIAL ACTIVA";
-
-
-          setTimeout(
-            () => {
-
-              xrStatus.style.display =
-                "none";
-
-            },
-            3000
-          );
-
-        }
+        showMessage(
+          "☢️ Booster nuclear desbloqueado"
+        );
 
       }
 
+    }
 
-      /*
-       * Si XR no arrancó:
-       * cámara fallback.
-       */
 
-      if (
-        !GAME.usingXR
-      ) {
+    /* =========================================================
+       BOOSTER X2
+    ========================================================== */
 
-        const cameraOK =
-          await startFallbackCamera();
-
+    weaponBooster.addEventListener(
+      "click",
+      function () {
 
         if (
-          !cameraOK
+          !GAME.weaponBoosterReady
         ) {
 
           return;
@@ -4051,432 +3245,674 @@ AFRAME.registerComponent(
         }
 
 
-        xrStatus.style.display =
-          "block";
+        playButtonSound();
 
 
-        xrStatus.textContent =
-          "📱 MODO CÁMARA ACTIVO";
+        GAME.weaponBoosterReady =
+          false;
+
+
+        GAME.doubleDamage =
+          true;
+
+
+        weaponBooster.disabled =
+          true;
+
+
+        showMessage(
+          "🔥 DAÑO DOBLE ACTIVADO"
+        );
 
 
         setTimeout(
           () => {
 
-            xrStatus.style.display =
-              "none";
+            GAME.doubleDamage =
+              false;
+
+            showMessage(
+              "Daño doble terminado"
+            );
 
           },
-          3000
+          15000
         );
 
       }
+    );
 
 
-      /*
-       * Menús.
-       */
+    /* =========================================================
+       BOOSTER NUCLEAR
+    ========================================================== */
 
-      startScreen.classList.add(
-        "hidden"
-      );
+    nuclearBooster.addEventListener(
+      "click",
+      function () {
 
+        if (
+          !GAME.nuclearBoosterReady
+        ) {
 
-      instructionsScreen.classList.add(
-        "hidden"
-      );
+          return;
 
-
-      /*
-       * Calibración.
-       */
-
-      await calibrateEnvironment();
+        }
 
 
-      /*
-       * Arena.
-       */
-
-      buildArena();
+        playButtonSound();
 
 
-      /*
-       * Estado.
-       */
-
-      GAME.running =
-        true;
-
-      GAME.gameOver =
-        false;
-
-      GAME.score =
-        0;
-
-      GAME.lives =
-        3;
-
-      GAME.level =
-        1;
-
-      GAME.weaponLevel =
-        0;
-
-      GAME.nuclearReady =
-        false;
-
-      GAME.zombies =
-        [];
-
-      GAME.maxZombies =
-        8;
+        GAME.nuclearBoosterReady =
+          false;
 
 
-      updateHUD();
+        GAME.nuclearActive =
+          true;
 
 
-      /*
-       * Mostrar HUD.
-       */
-
-      hud.style.display =
-        "block";
+        nuclearBooster.disabled =
+          true;
 
 
-      crosshair.style.display =
-        "block";
+        showMessage(
+          "☢️ ATAQUE NUCLEAR"
+        );
 
 
-      shootButton.style.display =
-        "flex";
+        /*
+         * Elimina todos los zombies
+         * actualmente presentes.
+         */
+
+        const zombies =
+          Array.from(
+            document.querySelectorAll(
+              "[zombie-movement]"
+            )
+          );
 
 
-      boosters.style.display =
-        "flex";
+        zombies.forEach(
+          (zombie) => {
+
+            if (
+              zombie.dataset.alive !==
+              "false"
+            ) {
+
+              matarZombie(
+                zombie
+              );
+
+            }
+
+          }
+        );
 
 
-      /*
-       * Primera oleada.
-       */
+        setTimeout(
+          () => {
 
-      spawnWave();
+            GAME.nuclearActive =
+              false;
+
+          },
+          1000
+        );
+
+      }
+    );
 
 
-      if (
-        GAME.mode ===
-        "survival"
+    /* =========================================================
+       ACTUALIZAR HUD
+    ========================================================== */
+
+    function updateHUD() {
+
+      scoreValue.textContent =
+        GAME.score;
+
+
+      levelValue.textContent =
+        GAME.mode === "survival"
+          ? GAME.survivalWave
+          : GAME.level;
+
+
+      let hearts = "";
+
+
+      for (
+        let i = 0;
+        i < GAME.lives;
+        i++
       ) {
 
-        startSurvival();
+        hearts += "❤️";
 
       }
 
 
-      showMessage(
-        GAME.mode === "levels"
-          ? "🎯 ¡NIVEL 1!"
-          : "♾️ ¡SOBREVIVE!",
-        1800
-      );
+      livesValue.textContent =
+        hearts ||
+        "💀";
+
+
+      zombiesValue.textContent =
+        document.querySelectorAll(
+          "[zombie-movement]"
+        ).length;
+
+
+      /*
+       * Estado de boosters.
+       */
+
+      weaponBooster.disabled =
+        !GAME.weaponBoosterReady;
+
+
+      nuclearBooster.disabled =
+        !GAME.nuclearBoosterReady;
 
     }
-  );
 
 
-  /* ==========================================================
-     DISPARO
-     ========================================================== */
+    /* =========================================================
+       LOOP PRINCIPAL DEL JUEGO
+    ========================================================== */
 
-  shootButton.addEventListener(
-    "pointerdown",
-    event => {
-
-      event.preventDefault();
-
-      event.stopPropagation();
-
-      shoot();
-
-    },
-    {
-      passive: false
-    }
-  );
-
-
-  /* ==========================================================
-     TAMBIÉN DISPARAR AL TOCAR EL CENTRO
-     ========================================================== */
-
-  crosshair.addEventListener(
-    "pointerdown",
-    event => {
-
-      event.preventDefault();
-
-      event.stopPropagation();
-
-      shoot();
-
-    },
-    {
-      passive: false
-    }
-  );
-
-
-  /* ==========================================================
-     EVITAR ZOOM/SCROLL DURANTE EL JUEGO
-     ========================================================== */
-
-  document.addEventListener(
-    "touchmove",
-    event => {
+    function gameLoop(
+      time
+    ) {
 
       if (
         GAME.running
       ) {
 
-        event.preventDefault();
+        /*
+         * Tiempo de supervivencia.
+         */
+
+        GAME.survivalTime =
+          Math.floor(
+            (
+              performance.now() -
+              GAME.startTime
+            ) / 1000
+          );
+
+
+        /*
+         * Modo supervivencia.
+         */
+
+        if (
+          GAME.mode === "survival"
+        ) {
+
+          const wave =
+            Math.floor(
+              GAME.survivalTime / 15
+            ) + 1;
+
+
+          if (
+            wave >
+            GAME.survivalWave
+          ) {
+
+            GAME.survivalWave =
+              wave;
+
+
+            showMessage(
+              "☠️ OLEADA " +
+              wave
+            );
+
+          }
+
+        }
+
+
+        /*
+         * Generación de zombies.
+         */
+
+        if (
+          performance.now() -
+          GAME.lastSpawn >=
+          GAME.spawnInterval
+        ) {
+
+          spawnZombie();
+
+
+          GAME.lastSpawn =
+            performance.now();
+
+
+          /*
+           * Ajuste de velocidad de aparición.
+           */
+
+          if (
+            GAME.mode === "survival"
+          ) {
+
+            GAME.spawnInterval =
+              Math.max(
+                1100,
+                3500 -
+                  GAME.survivalWave *
+                  170
+              );
+
+          } else {
+
+            GAME.spawnInterval =
+              Math.max(
+                1200,
+                3200 -
+                  GAME.level *
+                  220
+              );
+
+          }
+
+        }
+
+
+        updateHUD();
 
       }
 
-    },
-    {
-      passive: false
+
+      requestAnimationFrame(
+        gameLoop
+      );
+
     }
-  );
 
 
-  /* ==========================================================
-     GAME OVER
-     ========================================================== */
+    /* =========================================================
+       ELIMINAR TODOS LOS ZOMBIES
+    ========================================================== */
 
-  function endGame() {
+    function removeAllZombies() {
 
-    if (
-      GAME.gameOver
+      document
+        .querySelectorAll(
+          "[zombie-movement]"
+        )
+        .forEach(
+          (zombie) => {
+
+            if (
+              zombie.parentNode
+            ) {
+
+              zombie.parentNode.removeChild(
+                zombie
+              );
+
+            }
+
+          }
+        );
+
+    }
+
+
+    /* =========================================================
+       GAME OVER
+    ========================================================== */
+
+    function endGame() {
+
+      if (
+        !GAME.running
+      ) {
+
+        return;
+
+      }
+
+
+      GAME.running =
+        false;
+
+
+      /*
+       * Eliminar zombies.
+       */
+
+      removeAllZombies();
+
+
+      /*
+       * Ocultar controles.
+       */
+
+      hud.classList.add(
+        "hidden"
+      );
+
+
+      crosshair.classList.add(
+        "hidden"
+      );
+
+
+      shootButton.classList.add(
+        "hidden"
+      );
+
+
+      boosters.classList.add(
+        "hidden"
+      );
+
+
+      /*
+       * Estadísticas.
+       */
+
+      finalScore.textContent =
+        GAME.score;
+
+
+      finalLevel.textContent =
+        GAME.mode === "survival"
+          ? GAME.survivalWave
+          : GAME.level;
+
+
+      finalKills.textContent =
+        GAME.kills;
+
+
+      finalTime.textContent =
+        GAME.survivalTime +
+        "s";
+
+
+      /*
+       * Mostrar pantalla.
+       */
+
+      gameOverScreen.classList.remove(
+        "hidden"
+      );
+
+    }
+
+
+    /* =========================================================
+       REINICIAR
+    ========================================================== */
+
+    restartButton.addEventListener(
+      "click",
+      function () {
+
+        playButtonSound();
+
+        gameOverScreen.classList.add(
+          "hidden"
+        );
+
+        startGame();
+
+      }
+    );
+
+
+    /* =========================================================
+       VOLVER AL MENÚ
+    ========================================================== */
+
+    menuButton.addEventListener(
+      "click",
+      function () {
+
+        playButtonSound();
+
+
+        GAME.running =
+          false;
+
+
+        removeAllZombies();
+
+
+        gameOverScreen.classList.add(
+          "hidden"
+        );
+
+
+        hud.classList.add(
+          "hidden"
+        );
+
+
+        crosshair.classList.add(
+          "hidden"
+        );
+
+
+        shootButton.classList.add(
+          "hidden"
+        );
+
+
+        boosters.classList.add(
+          "hidden"
+        );
+
+
+        calibrationScreen.classList.add(
+          "hidden"
+        );
+
+
+        menuScreen.classList.remove(
+          "hidden"
+        );
+
+
+        /*
+         * No detenemos la música
+         * para mantener el comportamiento
+         * anterior.
+         */
+
+      }
+    );
+
+
+    /* =========================================================
+       BOTÓN DISPARO
+    ========================================================== */
+
+    shootButton.addEventListener(
+      "pointerdown",
+      function (event) {
+
+        event.preventDefault();
+
+        disparar();
+
+      }
+    );
+
+
+    /* =========================================================
+       CROSSHAIR TAMBIÉN DISPARA
+    ========================================================== */
+
+    crosshair.addEventListener(
+      "pointerdown",
+      function (event) {
+
+        event.preventDefault();
+
+        disparar();
+
+      }
+    );
+
+
+    /* =========================================================
+       EVITAR ZOOM / GESTOS
+    ========================================================== */
+
+    document.addEventListener(
+      "gesturestart",
+      function (event) {
+
+        event.preventDefault();
+
+      },
+      {
+        passive: false
+      }
+    );
+
+
+    document.addEventListener(
+      "gesturechange",
+      function (event) {
+
+        event.preventDefault();
+
+      },
+      {
+        passive: false
+      }
+    );
+
+
+    document.addEventListener(
+      "gestureend",
+      function (event) {
+
+        event.preventDefault();
+
+      },
+      {
+        passive: false
+      }
+    );
+
+
+    /* =========================================================
+       MENSAJES
+    ========================================================== */
+
+    let messageTimeout = null;
+
+
+    function showMessage(
+      text
     ) {
 
-      return;
+      message.textContent =
+        text;
+
+
+      message.classList.add(
+        "show"
+      );
+
+
+      clearTimeout(
+        messageTimeout
+      );
+
+
+      messageTimeout =
+        setTimeout(
+          () => {
+
+            message.classList.remove(
+              "show"
+            );
+
+          },
+          1300
+        );
 
     }
 
 
-    GAME.gameOver =
-      true;
+    /* =========================================================
+       CARGA DEL MODELO
+    ========================================================== */
 
-    GAME.running =
-      false;
+    const zombieModel =
+      document.getElementById(
+        "zombieModel"
+      );
 
 
-    clearInterval(
-      GAME.survivalTimer
+    zombieModel.addEventListener(
+      "loaded",
+      function () {
+
+        console.log(
+          "zombie.glb cargado correctamente."
+        );
+
+      }
     );
 
 
-    /*
-     * Eliminar zombies.
-     */
+    zombieModel.addEventListener(
+      "error",
+      function (event) {
 
-    for (
-      const zombie of
-      [...GAME.zombies]
-    ) {
+        console.error(
+          "Error cargando zombie.glb:",
+          event
+        );
 
-      removeZombie(
-        zombie
-      );
+        showMessage(
+          "Error cargando zombie.glb"
+        );
 
-    }
-
-
-    GAME.zombies =
-      [];
-
-
-    /*
-     * Música.
-     */
-
-    try {
-
-      music.pause();
-
-    } catch(e) {}
-
-
-    /*
-     * Ocultar controles.
-     */
-
-    hud.style.display =
-      "none";
-
-    crosshair.style.display =
-      "none";
-
-    shootButton.style.display =
-      "none";
-
-    boosters.style.display =
-      "none";
-
-
-    /*
-     * Pantalla final.
-     */
-
-    startScreen.innerHTML = `
-
-      <div class="panel">
-
-        <div class="logo">
-
-          ☠
-
-          <span>FIN DE LA PARTIDA</span>
-
-        </div>
-
-
-        <p class="subtitle">
-
-          Los zombies te han alcanzado.
-
-        </p>
-
-
-        <div class="status ok">
-
-          PUNTUACIÓN
-
-          <strong
-            style="
-              display:block;
-              font-size:42px;
-              color:white;
-              margin-top:7px;
-            "
-          >
-
-            ${GAME.score}
-
-          </strong>
-
-        </div>
-
-
-        <div class="status">
-
-          NIVEL ALCANZADO:
-          <strong>
-            ${GAME.level}
-          </strong>
-
-        </div>
-
-
-        <div class="status">
-
-          🎯 ACIERTOS:
-          ${GAME.shotHits}
-          <br><br>
-          💨 FALLOS:
-          ${GAME.shotMisses}
-
-        </div>
-
-
-        <button
-          id="restartButton">
-
-          🔄 JUGAR DE NUEVO
-
-        </button>
-
-      </div>
-
-    `;
-
-
-    startScreen.classList.remove(
-      "hidden"
+      }
     );
 
 
-    document
-      .getElementById(
-        "restartButton"
-      )
-      .addEventListener(
-        "click",
-        () => {
+    /* =========================================================
+       ESTADO DE LA ESCENA
+    ========================================================== */
 
-          playButton();
+    scene.addEventListener(
+      "loaded",
+      function () {
 
-          location.reload();
+        console.log(
+          "A-Frame cargado correctamente."
+        );
 
-        }
-      );
-
-  }
-
-
-  /* ==========================================================
-     DIAGNÓSTICO INICIAL
-     ========================================================== */
-
-  detectXR();
-
-
-  /* ==========================================================
-     CARGA DEL MODELO
-     ========================================================== */
-
-  const model =
-    document.getElementById(
-      "zombieModel"
+      }
     );
 
 
-  model.addEventListener(
-    "loaded",
-    () => {
+    /* =========================================================
+       INICIAR LOOP
+    ========================================================== */
 
-      console.log(
-        "✓ zombie.glb disponible."
-      );
+    requestAnimationFrame(
+      gameLoop
+    );
 
-    }
-  );
-
-
-  model.addEventListener(
-    "error",
-    event => {
-
-      console.error(
-        "❌ Error cargando zombie.glb:",
-        event
-      );
-
-
-      systemStatus.textContent =
-        "⚠️ No se pudo cargar zombie.glb. Revisa que el archivo esté en la carpeta.";
-
-      systemStatus.className =
-        "status warning";
-
-    }
-  );
-
-
-})();
-
-</script>
+  </script>
 
 </body>
-
 </html>
-```
