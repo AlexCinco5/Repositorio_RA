@@ -1,290 +1,1815 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#000000">
-    <title>Actividad 3 - Catrina con Mapeo Facial</title>
 
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
+  <meta charset="UTF-8">
 
-    <style>
-        html, body {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background: #000;
-            touch-action: none; overscroll-behavior: none;
-            -webkit-user-select: none; user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-        video {
-            position: fixed !important; top: 0 !important; left: 0 !important;
-            width: 100vw !important; height: 100vh !important;
-            object-fit: cover !important; z-index: 0 !important;
-            display: block !important; visibility: visible !important;
-            opacity: 1 !important; background: #000 !important;
-            pointer-events: none !important;
-        }
-        video::-webkit-media-controls { display: none !important; }
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  >
 
-        a-scene, .a-canvas, canvas.a-canvas {
-            position: fixed !important; top: 0 !important; left: 0 !important;
-            width: 100% !important; height: 100% !important;
-            z-index: 1 !important;
-            background: transparent !important;
-            background-color: transparent !important;
-        }
-        .a-enter-vr, .a-enter-ar, .a-orientation-modal, .a-loader-title { display: none !important; }
+  <title>Máscara de Día de Muertos - Realidad Aumentada</title>
 
-        #instruccion {
-            position: fixed; top: 10%; left: 50%; transform: translateX(-50%);
-            z-index: 10; background: rgba(0,0,0,0.7); color: #f97316;
-            padding: 12px 24px; border-radius: 8px;
-            font-weight: bold; font-size: 16px; text-align: center;
-            pointer-events: none;
-        }
-        #overlay-inicio {
-            position: fixed; inset: 0; z-index: 9999;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            background: #000; color: #fff; text-align: center;
-            font-size: 16px; padding: 24px; box-sizing: border-box;
-        }
-        #overlay-inicio.oculto { display: none; }
-        #overlay-inicio p { max-width: 420px; line-height: 1.5; margin: 0 0 8px; }
-        #btn-iniciar {
-            margin-top: 24px; padding: 16px 40px; font-size: 18px;
-            font-weight: 700; border: 0; border-radius: 40px;
-            background: #f97316; color: #fff; cursor: pointer;
-            -webkit-appearance: none; touch-action: manipulation;
-        }
-        #mensaje-error {
-            margin-top: 20px; color: #ff6b6b; font-size: 14px;
-            max-width: 460px; line-height: 1.5; display: none;
-            white-space: pre-wrap; word-break: break-word;
-        }
-        #mensaje-error.visible { display: block; }
-        #estado { margin-top: 16px; color: #f97316; font-size: 14px; min-height: 20px; }
-    </style>
 
-    <script>
-        AFRAME.registerComponent('detector-gesto-boca', {
-            schema: { umbral: { type: 'number', default: 0.04 } },
-            init: function() {
-                this.labioSup = document.querySelector('#labio-sup');
-                this.labioInf = document.querySelector('#labio-inf');
-                this.petalos = document.querySelector('#efecto-petalos');
-                this.activo = false;
-                this.ultimoDisparo = 0;
-            },
-            tick: function() {
-                if (!this.labioSup || !this.labioInf) return;
-                if (!this.labioSup.object3D || !this.labioInf.object3D) return;
+  <!-- =====================================================
+       IMPORTMAP
+       Three.js + MindAR Face Tracking
+  ====================================================== -->
 
-                const posSup = new THREE.Vector3();
-                const posInf = new THREE.Vector3();
-                this.labioSup.object3D.getWorldPosition(posSup);
-                this.labioInf.object3D.getWorldPosition(posInf);
-                const distancia = posSup.distanceTo(posInf);
-                const ahora = performance.now();
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+      "mindar-face-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-three.prod.js"
+    }
+  }
+  </script>
 
-                if (distancia > this.data.umbral && !this.activo && (ahora - this.ultimoDisparo) > 2500) {
-                    this.activo = true;
-                    this.ultimoDisparo = ahora;
-                    if (this.petalos) this.petalos.setAttribute('visible', 'true');
-                    if (navigator.vibrate) { try { navigator.vibrate(60); } catch (e) {} }
-                    setTimeout(() => {
-                        if (this.petalos) this.petalos.setAttribute('visible', 'false');
-                        this.activo = false;
-                    }, 2500);
-                }
-            }
-        });
-    </script>
+
+  <!-- =====================================================
+       ESTILOS
+  ====================================================== -->
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+
+    html,
+    body {
+
+      margin: 0;
+      padding: 0;
+
+      width: 100%;
+      height: 100%;
+
+      overflow: hidden;
+
+      background: #000;
+
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+    }
+
+
+    /* =====================================================
+       CONTENEDOR PRINCIPAL
+    ====================================================== */
+
+    #container {
+
+      position: fixed;
+
+      top: 0;
+      left: 0;
+
+      width: 100vw;
+      height: 100vh;
+
+      overflow: hidden;
+
+      background: #000;
+    }
+
+
+    /* =====================================================
+       TITULO
+    ====================================================== */
+
+    #titulo {
+
+      position: fixed;
+
+      top: 18px;
+      left: 50%;
+
+      transform: translateX(-50%);
+
+      z-index: 20;
+
+      color: white;
+
+      background: rgba(0, 0, 0, 0.55);
+
+      padding: 10px 18px;
+
+      border-radius: 22px;
+
+      font-size: 15px;
+
+      font-weight: bold;
+
+      text-align: center;
+
+      backdrop-filter: blur(6px);
+
+      pointer-events: none;
+
+      white-space: nowrap;
+    }
+
+
+    /* =====================================================
+       INDICADOR DE GESTO
+    ====================================================== */
+
+    #gesto {
+
+      position: fixed;
+
+      top: 70px;
+      left: 50%;
+
+      transform: translateX(-50%);
+
+      z-index: 20;
+
+      color: white;
+
+      background: rgba(0, 0, 0, 0.45);
+
+      padding: 8px 15px;
+
+      border-radius: 18px;
+
+      font-size: 13px;
+
+      text-align: center;
+
+      pointer-events: none;
+
+      transition:
+        opacity 0.3s ease,
+        transform 0.3s ease;
+    }
+
+
+    /* =====================================================
+       MENSAJE DE ESTADO
+    ====================================================== */
+
+    #estado {
+
+      position: fixed;
+
+      left: 50%;
+      bottom: 30px;
+
+      transform: translateX(-50%);
+
+      z-index: 30;
+
+      color: white;
+
+      background: rgba(0, 0, 0, 0.70);
+
+      padding: 12px 20px;
+
+      border-radius: 25px;
+
+      font-size: 14px;
+
+      text-align: center;
+
+      max-width: 90%;
+
+      pointer-events: none;
+
+      transition:
+        opacity 0.4s ease;
+    }
+
+
+    /* =====================================================
+       BOTON DE PRUEBA
+    ====================================================== */
+
+    #botonEfecto {
+
+      position: fixed;
+
+      right: 18px;
+      bottom: 20px;
+
+      z-index: 40;
+
+      border: none;
+
+      padding: 13px 18px;
+
+      border-radius: 28px;
+
+      background: #d88924;
+
+      color: white;
+
+      font-size: 14px;
+
+      font-weight: bold;
+
+      cursor: pointer;
+
+      box-shadow:
+        0 5px 20px rgba(0, 0, 0, 0.35);
+
+      transition:
+        transform 0.2s ease,
+        background 0.2s ease;
+    }
+
+
+    #botonEfecto:hover {
+
+      background: #bd7215;
+    }
+
+
+    #botonEfecto:active {
+
+      transform: scale(0.94);
+    }
+
+
+    /* =====================================================
+       BOTON DE AUDIO
+    ====================================================== */
+
+    #botonAudio {
+
+      position: fixed;
+
+      left: 18px;
+      bottom: 20px;
+
+      z-index: 40;
+
+      border: none;
+
+      padding: 13px 18px;
+
+      border-radius: 28px;
+
+      background: rgba(0, 0, 0, 0.70);
+
+      color: white;
+
+      font-size: 14px;
+
+      font-weight: bold;
+
+      cursor: pointer;
+
+      box-shadow:
+        0 5px 20px rgba(0, 0, 0, 0.30);
+
+      transition:
+        transform 0.2s ease,
+        background 0.2s ease;
+    }
+
+
+    #botonAudio:active {
+
+      transform: scale(0.94);
+    }
+
+
+    /* =====================================================
+       EFECTO VISUAL CUANDO SE ABRE LA BOCA
+    ====================================================== */
+
+    #flashEfecto {
+
+      position: fixed;
+
+      inset: 0;
+
+      z-index: 10;
+
+      pointer-events: none;
+
+      opacity: 0;
+
+      background:
+        radial-gradient(
+          circle,
+          rgba(255, 190, 70, 0.20),
+          transparent 55%
+        );
+
+      transition:
+        opacity 0.25s ease;
+    }
+
+
+    #flashEfecto.activo {
+
+      opacity: 1;
+    }
+
+
+    /* =====================================================
+       ERROR
+    ====================================================== */
+
+    #error {
+
+      display: none;
+
+      position: fixed;
+
+      top: 50%;
+      left: 50%;
+
+      transform: translate(-50%, -50%);
+
+      z-index: 100;
+
+      width: 85%;
+
+      max-width: 500px;
+
+      padding: 25px;
+
+      border-radius: 15px;
+
+      background: rgba(0, 0, 0, 0.92);
+
+      color: white;
+
+      text-align: center;
+
+      line-height: 1.5;
+    }
+
+
+    #error strong {
+
+      color: #ffb347;
+    }
+
+
+    /* =====================================================
+       RESPONSIVE
+    ====================================================== */
+
+    @media (max-width: 500px) {
+
+      #titulo {
+
+        top: 12px;
+
+        font-size: 13px;
+
+        padding: 8px 14px;
+      }
+
+
+      #gesto {
+
+        top: 58px;
+
+        font-size: 12px;
+      }
+
+
+      #botonEfecto {
+
+        right: 12px;
+
+        bottom: 15px;
+
+        padding: 11px 14px;
+
+        font-size: 12px;
+      }
+
+
+      #botonAudio {
+
+        left: 12px;
+
+        bottom: 15px;
+
+        padding: 11px 14px;
+
+        font-size: 12px;
+      }
+
+    }
+
+  </style>
+
 </head>
+
+
 <body>
 
-    <div id="overlay-inicio">
-        <p>💀 Vamos a mapear tu rostro con la Catrina.</p>
-        <p><strong>Toca INICIAR</strong> y acepta el permiso de cámara frontal.</p>
-        <button id="btn-iniciar" type="button">INICIAR</button>
-        <div id="estado"></div>
-        <div id="mensaje-error"></div>
-    </div>
 
-    <div id="instruccion">💀 Abre la boca para liberar cempasúchil</div>
+  <!-- =====================================================
+       CONTENEDOR AR
+  ====================================================== -->
 
-    <a-scene
-        mindar-face="autoStart: false; maxTrack: 1; filterMinCF: 0.001; filterBeta: 0.01; missTolerance: 3; warmupTolerance: 2"
-        embedded
-        background="transparent: true"
-        color-space="sRGB"
-        renderer="colorManagement: true; physicallyCorrectLights: false; antialias: false; precision: mediump; alpha: true"
-        vr-mode-ui="enabled: false"
-        device-orientation-permission-ui="enabled: false"
-        loading-screen="enabled: false"
-        detector-gesto-boca>
+  <div id="container"></div>
 
-        <a-assets timeout="15000">
-            <img id="textura-catrina" src="./mascara_catrina.png" crossorigin="anonymous">
-            <img id="textura-petalos" src="./petalos.png" crossorigin="anonymous">
-        </a-assets>
 
-        <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
+  <!-- =====================================================
+       TITULO
+  ====================================================== -->
 
-        <a-camera active="false" position="0 0 0"></a-camera>
+  <div id="titulo">
 
-        <a-entity id="labio-sup" mindar-face-target="anchorIndex: 13"></a-entity>
-        <a-entity id="labio-inf" mindar-face-target="anchorIndex: 14"></a-entity>
+    💀 Máscara de Día de Muertos
 
-        <a-entity mindar-face-target="anchorIndex: 168">
-            <a-entity
-                mindar-face-default-face-model
-                material="src: #textura-catrina; transparent: true; alphaTest: 0.4; shader: flat; side: double">
-            </a-entity>
-        </a-entity>
+  </div>
 
-        <a-entity mindar-face-target="anchorIndex: 168">
-            <a-image
-                id="efecto-petalos"
-                src="#textura-petalos"
-                position="0 -0.5 0.3"
-                scale="1.5 1.5 1.5"
-                visible="false"
-                animation__pop="property: scale; from: 0.1 0.1 0.1; to: 1.5 1.5 1.5; dur: 400; easing: easeOutBack; startEvents: show"
-                animation__rot="property: rotation; to: 0 0 360; dur: 3000; loop: true; easing: linear">
-            </a-image>
-        </a-entity>
-    </a-scene>
 
-    <script>
-        (function () {
-            const overlay = document.getElementById('overlay-inicio');
-            const btn = document.getElementById('btn-iniciar');
-            const estado = document.getElementById('estado');
-            const errorBox = document.getElementById('mensaje-error');
-            let arrancado = false;
+  <!-- =====================================================
+       INDICADOR DE GESTO
+  ====================================================== -->
 
-            function mostrarError(msg) {
-                errorBox.textContent = msg;
-                errorBox.classList.add('visible');
-                estado.textContent = '';
-                btn.disabled = false;
-                btn.textContent = 'REINTENTAR';
-                arrancado = false;
+  <div id="gesto">
+
+    👄 Abre la boca para activar el efecto
+
+  </div>
+
+
+  <!-- =====================================================
+       ESTADO
+  ====================================================== -->
+
+  <div id="estado">
+
+    Iniciando cámara...
+
+  </div>
+
+
+  <!-- =====================================================
+       FLASH VISUAL
+  ====================================================== -->
+
+  <div id="flashEfecto"></div>
+
+
+  <!-- =====================================================
+       BOTON DE AUDIO
+       
+       Necesario porque algunos navegadores móviles
+       bloquean audio hasta que existe una interacción
+       del usuario.
+  ====================================================== -->
+
+  <button
+    id="botonAudio"
+    type="button"
+  >
+
+    🔊 Activar sonido
+
+  </button>
+
+
+  <!-- =====================================================
+       BOTON MANUAL DE PRUEBA
+       
+       El gesto de la boca sigue siendo la interacción
+       principal.
+  ====================================================== -->
+
+  <button
+    id="botonEfecto"
+    type="button"
+  >
+
+    🌼 Probar efecto
+
+  </button>
+
+
+  <!-- =====================================================
+       ERROR
+  ====================================================== -->
+
+  <div id="error">
+
+    <strong>
+      No se pudo iniciar la Realidad Aumentada.
+    </strong>
+
+    <br><br>
+
+    Verifica:
+
+    <br>
+
+    • Cámara frontal disponible<br>
+    • Permiso de cámara activado<br>
+    • Chrome/Safari actualizado<br>
+    • HTTPS o localhost<br>
+    • Buena iluminación
+
+  </div>
+
+
+  <!-- =====================================================
+       AUDIO
+       
+       Este archivo ya existe en tu carpeta assets.
+  ====================================================== -->
+
+  <audio
+    id="sonido"
+    src="./assets/sonido_misterio.mp3"
+    preload="auto"
+  ></audio>
+
+
+  <!-- =====================================================
+       JAVASCRIPT
+  ====================================================== -->
+
+  <script type="module">
+
+
+    /* =====================================================
+       IMPORTACIONES
+    ====================================================== */
+
+    import * as THREE from "three";
+
+    import {
+      MindARThree
+    } from "mindar-face-three";
+
+
+    /* =====================================================
+       VARIABLES PRINCIPALES
+    ====================================================== */
+
+    let mindarThree = null;
+
+    let renderer = null;
+
+    let scene = null;
+
+    let camera = null;
+
+    let faceMesh = null;
+
+    let faceAnchor = null;
+
+
+    /* =====================================================
+       PETALOS
+    ====================================================== */
+
+    let petalos = [];
+
+    let efectoActivo = false;
+
+    let tiempoPetalos = 0;
+
+
+    /* =====================================================
+       DETECCION DE BOCA
+    ====================================================== */
+
+    let bocaAbierta = false;
+
+    let ultimoDisparo = 0;
+
+    let ultimoEstadoBoca = false;
+
+
+    /*
+     * Umbral para considerar que la boca está abierta.
+     *
+     * Se utilizan dos umbrales:
+     *
+     * 0.22 -> abre
+     * 0.14 -> cierra
+     *
+     * Esto se llama histéresis y evita que el efecto
+     * parpadee cuando estamos justo en el límite.
+     */
+
+    const UMBRAL_ABRIR = 0.22;
+
+    const UMBRAL_CERRAR = 0.14;
+
+
+    /*
+     * Tiempo mínimo entre activaciones.
+     *
+     * Evita que el sonido se reproduzca
+     * demasiadas veces.
+     */
+
+    const TIEMPO_ENTRE_DISPAROS = 1200;
+
+
+    /* =====================================================
+       AUDIO
+    ====================================================== */
+
+    const audio =
+      document.querySelector("#sonido");
+
+    let audioActivado = false;
+
+
+    /* =====================================================
+       ELEMENTOS HTML
+    ====================================================== */
+
+    const container =
+      document.querySelector("#container");
+
+    const estado =
+      document.querySelector("#estado");
+
+    const gesto =
+      document.querySelector("#gesto");
+
+    const botonEfecto =
+      document.querySelector("#botonEfecto");
+
+    const botonAudio =
+      document.querySelector("#botonAudio");
+
+    const flashEfecto =
+      document.querySelector("#flashEfecto");
+
+    const errorBox =
+      document.querySelector("#error");
+
+
+    /* =====================================================
+       CAMBIAR ESTADO
+    ====================================================== */
+
+    function cambiarEstado(texto) {
+
+      estado.textContent = texto;
+
+    }
+
+
+    /* =====================================================
+       MOSTRAR ERROR
+    ====================================================== */
+
+    function mostrarError(error) {
+
+      console.error(
+        "Error de Realidad Aumentada:",
+        error
+      );
+
+      estado.style.display = "none";
+
+      errorBox.style.display = "block";
+
+    }
+
+
+    /* =====================================================
+       ACTIVAR AUDIO
+       
+       Los navegadores móviles suelen bloquear audio
+       automático hasta que el usuario interactúa.
+    ====================================================== */
+
+    async function activarAudio() {
+
+      try {
+
+        /*
+         * Intentamos cargar el audio.
+         */
+
+        audio.load();
+
+
+        /*
+         * Reproducimos muy brevemente para conseguir
+         * la autorización del navegador.
+         */
+
+        audio.muted = true;
+
+        await audio.play();
+
+        audio.pause();
+
+        audio.currentTime = 0;
+
+        audio.muted = false;
+
+
+        audioActivado = true;
+
+
+        botonAudio.textContent =
+          "🔊 Sonido activo";
+
+
+        botonAudio.style.background =
+          "rgba(40, 130, 70, 0.85)";
+
+
+        cambiarEstado(
+          "🔊 Sonido activado — abre la boca"
+        );
+
+
+        setTimeout(
+          () => {
+
+            estado.style.opacity = "0";
+
+          },
+          2500
+        );
+
+
+      }
+
+      catch (error) {
+
+        console.warn(
+          "El navegador bloqueó el audio:",
+          error
+        );
+
+        audioActivado = false;
+
+        botonAudio.textContent =
+          "🔊 Toca para activar sonido";
+
+      }
+
+    }
+
+
+    /* =====================================================
+       REPRODUCIR SONIDO
+    ====================================================== */
+
+    async function reproducirSonido() {
+
+      /*
+       * Si todavía no está desbloqueado,
+       * no intentamos forzar reproducción.
+       */
+
+      if (!audioActivado) {
+
+        return;
+
+      }
+
+
+      try {
+
+        audio.pause();
+
+        audio.currentTime = 0;
+
+        await audio.play();
+
+      }
+
+      catch (error) {
+
+        console.warn(
+          "No se pudo reproducir el sonido:",
+          error
+        );
+
+      }
+
+    }
+
+
+    /* =====================================================
+       BOTON DE AUDIO
+    ====================================================== */
+
+    botonAudio.addEventListener(
+      "click",
+      activarAudio
+    );
+
+
+    /*
+     * Intentar desbloquear el audio con la primera
+     * interacción del usuario.
+     *
+     * Esto ayuda especialmente en teléfonos.
+     */
+
+    window.addEventListener(
+      "pointerdown",
+      () => {
+
+        if (!audioActivado) {
+
+          activarAudio();
+
+        }
+
+      },
+      {
+        once: true
+      }
+    );
+
+
+    /* =====================================================
+       CREAR PETALOS
+    ====================================================== */
+
+    function crearPetalos() {
+
+
+      const loader =
+        new THREE.TextureLoader();
+
+
+      const texturaPetalos =
+        loader.load(
+
+          "./assets/petalos.png",
+
+          () => {
+
+            console.log(
+              "Textura de pétalos cargada correctamente."
+            );
+
+          },
+
+          undefined,
+
+          (error) => {
+
+            console.error(
+              "No se pudo cargar petalos.png",
+              error
+            );
+
+          }
+
+        );
+
+
+      texturaPetalos.colorSpace =
+        THREE.SRGBColorSpace;
+
+
+      /*
+       * Creamos varios pétalos.
+       */
+
+      for (let i = 0; i < 14; i++) {
+
+
+        const material =
+          new THREE.SpriteMaterial({
+
+            map: texturaPetalos,
+
+            transparent: true,
+
+            opacity: 0,
+
+            depthTest: false,
+
+            depthWrite: false
+
+          });
+
+
+        const petalo =
+          new THREE.Sprite(material);
+
+
+        /*
+         * Distribución alrededor de la cara.
+         */
+
+        const angulo =
+          (i / 14) *
+          Math.PI *
+          2;
+
+
+        const radio =
+          0.35 +
+          Math.random() * 0.35;
+
+
+        petalo.position.set(
+
+          Math.cos(angulo) * radio,
+
+          Math.sin(angulo) * radio,
+
+          0.25
+
+        );
+
+
+        /*
+         * Tamaño aleatorio.
+         */
+
+        const escala =
+          0.07 +
+          Math.random() * 0.06;
+
+
+        petalo.scale.set(
+          escala,
+          escala,
+          escala
+        );
+
+
+        /*
+         * Estado inicial.
+         */
+
+        petalo.visible = false;
+
+
+        /*
+         * Añadimos los pétalos al anchor facial.
+         *
+         * De esta forma siguen el movimiento de la cara.
+         */
+
+        if (faceAnchor) {
+
+          faceAnchor.group.add(
+            petalo
+          );
+
+        }
+
+
+        petalos.push({
+
+          objeto: petalo,
+
+          velocidad:
+            0.002 +
+            Math.random() * 0.004,
+
+          offset:
+            Math.random() *
+            Math.PI *
+            2,
+
+          velocidadRotacion:
+            0.01 +
+            Math.random() * 0.025
+
+        });
+
+      }
+
+    }
+
+
+    /* =====================================================
+       ACTIVAR PETALOS
+    ====================================================== */
+
+    function activarPetalos() {
+
+      efectoActivo = true;
+
+
+      petalos.forEach(
+        (petalo) => {
+
+          petalo.objeto.visible = true;
+
+          petalo.objeto.material.opacity = 1;
+
+          /*
+           * Reiniciar posición vertical.
+           */
+
+          if (
+            petalo.objeto.position.y > 1
+          ) {
+
+            petalo.objeto.position.y =
+              -0.6;
+
+          }
+
+        }
+      );
+
+
+      botonEfecto.textContent =
+        "🌼 Efecto activo";
+
+
+      botonEfecto.style.background =
+        "#9b5b11";
+
+
+      /*
+       * Efecto visual.
+       */
+
+      flashEfecto.classList.add(
+        "activo"
+      );
+
+
+      setTimeout(
+        () => {
+
+          flashEfecto.classList.remove(
+            "activo"
+          );
+
+        },
+        250
+      );
+
+    }
+
+
+    /* =====================================================
+       DESACTIVAR PETALOS
+    ====================================================== */
+
+    function desactivarPetalos() {
+
+      efectoActivo = false;
+
+
+      petalos.forEach(
+        (petalo) => {
+
+          petalo.objeto.visible =
+            false;
+
+          petalo.objeto.material.opacity =
+            0;
+
+        }
+      );
+
+
+      botonEfecto.textContent =
+        "🌼 Probar efecto";
+
+
+      botonEfecto.style.background =
+        "#d88924";
+
+    }
+
+
+    /* =====================================================
+       ACTIVAR EFECTO COMPLETO
+    ====================================================== */
+
+    async function dispararEfecto() {
+
+      const ahora =
+        performance.now();
+
+
+      /*
+       * Evitar disparos demasiado rápidos.
+       */
+
+      if (
+        ahora - ultimoDisparo <
+        TIEMPO_ENTRE_DISPAROS
+      ) {
+
+        return;
+
+      }
+
+
+      ultimoDisparo =
+        ahora;
+
+
+      /*
+       * Activar pétalos.
+       */
+
+      activarPetalos();
+
+
+      /*
+       * Reproducir sonido.
+       */
+
+      await reproducirSonido();
+
+
+      /*
+       * Mensaje.
+       */
+
+      gesto.textContent =
+        "🌼 ¡Efecto de cempasúchil activado!";
+
+
+      gesto.style.transform =
+        "translateX(-50%) scale(1.08)";
+
+
+      setTimeout(
+        () => {
+
+          gesto.textContent =
+            "👄 Abre la boca para activar el efecto";
+
+
+          gesto.style.transform =
+            "translateX(-50%) scale(1)";
+
+        },
+        1600
+      );
+
+    }
+
+
+    /* =====================================================
+       BOTON MANUAL
+       
+       Sirve como respaldo para demostrar el efecto
+       durante la presentación.
+    ====================================================== */
+
+    botonEfecto.addEventListener(
+      "click",
+      async () => {
+
+        /*
+         * Si el sonido todavía no está activado,
+         * aprovechamos el click para desbloquearlo.
+         */
+
+        if (!audioActivado) {
+
+          await activarAudio();
+
+        }
+
+
+        await dispararEfecto();
+
+      }
+    );
+
+
+    /* =====================================================
+       CALCULAR APERTURA DE BOCA
+       
+       Índices de MediaPipe Face Mesh:
+       
+       13  = labio superior
+       14  = labio inferior
+       61  = esquina izquierda
+       291 = esquina derecha
+       
+       Medimos:
+
+       apertura vertical
+       -----------------
+       ancho de boca
+
+       Esto permite normalizar el resultado
+       independientemente del tamaño de la cara.
+    ====================================================== */
+
+    function calcularAperturaBoca() {
+
+      if (!faceMesh) {
+
+        return 0;
+
+      }
+
+
+      if (
+        !faceMesh.geometry ||
+        !faceMesh.geometry.attributes ||
+        !faceMesh.geometry.attributes.position
+      ) {
+
+        return 0;
+
+      }
+
+
+      const posiciones =
+        faceMesh.geometry
+          .attributes
+          .position;
+
+
+      /*
+       * Comprobar que existen suficientes vértices.
+       */
+
+      if (
+        posiciones.count <= 291
+      ) {
+
+        return 0;
+
+      }
+
+
+      const superior =
+        new THREE.Vector3();
+
+
+      const inferior =
+        new THREE.Vector3();
+
+
+      const esquinaIzquierda =
+        new THREE.Vector3();
+
+
+      const esquinaDerecha =
+        new THREE.Vector3();
+
+
+      /*
+       * Obtener posiciones.
+       */
+
+      superior.fromBufferAttribute(
+        posiciones,
+        13
+      );
+
+
+      inferior.fromBufferAttribute(
+        posiciones,
+        14
+      );
+
+
+      esquinaIzquierda.fromBufferAttribute(
+        posiciones,
+        61
+      );
+
+
+      esquinaDerecha.fromBufferAttribute(
+        posiciones,
+        291
+      );
+
+
+      /*
+       * Distancia vertical.
+       */
+
+      const apertura =
+        superior.distanceTo(
+          inferior
+        );
+
+
+      /*
+       * Ancho de boca.
+       */
+
+      const ancho =
+        esquinaIzquierda.distanceTo(
+          esquinaDerecha
+        );
+
+
+      /*
+       * Evitar división entre cero.
+       */
+
+      if (ancho < 0.0001) {
+
+        return 0;
+
+      }
+
+
+      /*
+       * Ratio normalizado.
+       */
+
+      return apertura / ancho;
+
+    }
+
+
+    /* =====================================================
+       DETECTAR GESTO DE BOCA
+    ====================================================== */
+
+    function detectarBoca() {
+
+      const apertura =
+        calcularAperturaBoca();
+
+
+      /*
+       * Si la boca está cerrada y supera
+       * el umbral de apertura...
+       */
+
+      if (
+        !bocaAbierta &&
+        apertura >= UMBRAL_ABRIR
+      ) {
+
+        bocaAbierta = true;
+
+        ultimoEstadoBoca = true;
+
+
+        /*
+         * DISPARAR EFECTO
+         */
+
+        dispararEfecto();
+
+      }
+
+
+      /*
+       * Para considerar que la boca se cerró
+       * utilizamos un umbral menor.
+       */
+
+      else if (
+        bocaAbierta &&
+        apertura <= UMBRAL_CERRAR
+      ) {
+
+        bocaAbierta = false;
+
+        ultimoEstadoBoca = false;
+
+
+        /*
+         * Desactivar pétalos.
+         */
+
+        desactivarPetalos();
+
+      }
+
+    }
+
+
+    /* =====================================================
+       ANIMAR PETALOS
+    ====================================================== */
+
+    function animarPetalos() {
+
+      if (!efectoActivo) {
+
+        return;
+
+      }
+
+
+      tiempoPetalos += 0.01;
+
+
+      petalos.forEach(
+        (petalo) => {
+
+          const objeto =
+            petalo.objeto;
+
+
+          /*
+           * Movimiento hacia arriba.
+           */
+
+          objeto.position.y +=
+            petalo.velocidad;
+
+
+          /*
+           * Movimiento lateral suave.
+           */
+
+          objeto.position.x +=
+
+            Math.sin(
+              tiempoPetalos +
+              petalo.offset
+            ) * 0.0015;
+
+
+          /*
+           * Rotación.
+           */
+
+          objeto.rotation.z +=
+            petalo.velocidadRotacion;
+
+
+          /*
+           * Si el pétalo sale por arriba,
+           * vuelve a comenzar abajo.
+           */
+
+          if (
+            objeto.position.y >
+            1.0
+          ) {
+
+            objeto.position.y =
+              -0.8;
+
+          }
+
+        }
+      );
+
+    }
+
+
+    /* =====================================================
+       INICIALIZAR MINDAR
+    ====================================================== */
+
+    async function iniciarAR() {
+
+      try {
+
+
+        cambiarEstado(
+          "Cargando Realidad Aumentada..."
+        );
+
+
+        /* -----------------------------------------------
+           Crear MindAR
+        ------------------------------------------------ */
+
+        mindarThree =
+          new MindARThree({
+
+            container:
+              container,
+
+            uiLoading:
+              "yes",
+
+            uiScanning:
+              "yes",
+
+            uiError:
+              "yes",
+
+            resolution:
+              "720p",
+
+            /*
+             * Suavizado del tracking.
+             */
+
+            filterMinCF:
+              0.001,
+
+            filterBeta:
+              1.0
+
+          });
+
+
+        /* -----------------------------------------------
+           Obtener elementos Three.js
+        ------------------------------------------------ */
+
+        renderer =
+          mindarThree.renderer;
+
+        scene =
+          mindarThree.scene;
+
+        camera =
+          mindarThree.camera;
+
+
+        /* -----------------------------------------------
+           Configuración renderer
+        ------------------------------------------------ */
+
+        renderer.setPixelRatio(
+
+          Math.min(
+            window.devicePixelRatio,
+            2
+          )
+
+        );
+
+
+        renderer.setSize(
+          window.innerWidth,
+          window.innerHeight
+        );
+
+
+        renderer.setClearColor(
+          0x000000,
+          0
+        );
+
+
+        /* -----------------------------------------------
+           Luz
+        ------------------------------------------------ */
+
+        const luz =
+          new THREE.HemisphereLight(
+
+            0xffffff,
+
+            0xbbbbff,
+
+            1
+
+          );
+
+
+        scene.add(luz);
+
+
+        /* -----------------------------------------------
+           CREAR FACE MESH
+        ------------------------------------------------ */
+
+        faceMesh =
+          mindarThree.addFaceMesh();
+
+
+        /* -----------------------------------------------
+           CARGAR TEXTURA DE MASCARA
+        ------------------------------------------------ */
+
+        const loader =
+          new THREE.TextureLoader();
+
+
+        const textura =
+          await new Promise(
+            (resolve, reject) => {
+
+              loader.load(
+
+                "./assets/mascara_base.png",
+
+                resolve,
+
+                undefined,
+
+                reject
+
+              );
+
             }
-            function mostrarEstado(msg) { estado.textContent = msg; }
-            function esContextoSeguro() {
-                return window.isSecureContext || location.protocol === 'https:' ||
-                       location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-            }
-            function forzarVideoVisible() {
-                document.querySelectorAll('video').forEach(function (v) {
-                    v.style.setProperty('position', 'fixed', 'important');
-                    v.style.setProperty('top', '0', 'important');
-                    v.style.setProperty('left', '0', 'important');
-                    v.style.setProperty('width', '100vw', 'important');
-                    v.style.setProperty('height', '100vh', 'important');
-                    v.style.setProperty('object-fit', 'cover', 'important');
-                    v.style.setProperty('z-index', '0', 'important');
-                    v.style.setProperty('opacity', '1', 'important');
-                    v.style.setProperty('visibility', 'visible', 'important');
-                    v.style.setProperty('display', 'block', 'important');
-                    v.setAttribute('playsinline', '');
-                    v.setAttribute('webkit-playsinline', '');
-                    v.setAttribute('muted', '');
-                    v.muted = true;
-                    const p = v.play();
-                    if (p && p.catch) p.catch(function () {});
-                });
-            }
+          );
 
-            async function pedirPermisoCamara() {
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error('Este navegador no soporta acceso a la cámara.');
-                }
-                mostrarEstado('Solicitando permiso de cámara...');
-                let stream;
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: 'user' }, audio: false
-                    });
-                } catch (err) {
-                    const n = err && err.name ? err.name : 'Error';
-                    const m = {
-                        'NotAllowedError': 'Permiso DENEGADO.',
-                        'NotFoundError': 'No se encontró cámara.',
-                        'NotReadableError': 'La cámara está ocupada.'
-                    };
-                    throw new Error(m[n] || (n + ': ' + (err.message || '')));
-                }
-                stream.getTracks().forEach(t => t.stop());
-                mostrarEstado('Permiso concedido ✓ Iniciando...');
-            }
 
-            function obtenerSistemaMindAR(scene) {
-                const nombres = ['mindar-face-system', 'mindar-face'];
-                for (const n of nombres) {
-                    const s = scene.systems[n];
-                    if (s && typeof s.start === 'function') return s;
-                }
-                for (const k of Object.keys(scene.systems)) {
-                    if (k.toLowerCase().indexOf('mindar') !== -1) {
-                        const s = scene.systems[k];
-                        if (s && typeof s.start === 'function') return s;
-                    }
-                }
-                return null;
-            }
+        /*
+         * Configuración correcta del color.
+         */
 
-            function arrancarMindAR() {
-                const scene = document.querySelector('a-scene');
-                function intentar() {
-                    const sistema = obtenerSistemaMindAR(scene);
-                    if (!sistema) { mostrarError('No se encontró el sistema de MindAR.'); return; }
-                    try { sistema.start(); }
-                    catch (e) { mostrarError('Error: ' + (e.message || e)); return; }
-                    let intentos = 0;
-                    const timer = setInterval(() => {
-                        forzarVideoVisible();
-                        if (++intentos > 30) clearInterval(timer);
-                    }, 150);
-                    const checkVideo = setInterval(() => {
-                        const v = document.querySelector('video');
-                        if (v && v.readyState >= 2) {
-                            clearInterval(checkVideo);
-                            overlay.classList.add('oculto');
-                        }
-                    }, 200);
-                    setTimeout(() => overlay.classList.add('oculto'), 8000);
-                }
-                if (scene.hasLoaded) setTimeout(intentar, 200);
-                else scene.addEventListener('loaded', () => setTimeout(intentar, 200), { once: true });
-            }
+        textura.colorSpace =
+          THREE.SRGBColorSpace;
 
-            async function iniciar() {
-                if (arrancado) return;
-                arrancado = true;
-                btn.disabled = true;
-                errorBox.classList.remove('visible');
-                errorBox.textContent = '';
-                if (!esContextoSeguro()) { mostrarError('Esta página NO está en HTTPS.'); return; }
-                try { await pedirPermisoCamara(); }
-                catch (e) { mostrarError(e.message || String(e)); return; }
-                arrancarMindAR();
-            }
 
-            btn.addEventListener('click', iniciar, { passive: true });
-            btn.addEventListener('touchend', function (e) { e.preventDefault(); iniciar(); }, { passive: false });
+        textura.needsUpdate =
+          true;
 
-            document.addEventListener('gesturestart', e => e.preventDefault());
-            document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
-            setInterval(forzarVideoVisible, 2000);
-            window.addEventListener('resize', () => setTimeout(() => { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 300));
-            window.addEventListener('orientationchange', () => setTimeout(() => { window.dispatchEvent(new Event('resize')); forzarVideoVisible(); }, 500));
-        })();
-    </script>
+
+        /* -----------------------------------------------
+           MATERIAL DE MASCARA
+        ------------------------------------------------ */
+
+        faceMesh.material =
+          new THREE.MeshBasicMaterial({
+
+            map:
+              textura,
+
+            transparent:
+              true,
+
+            alphaTest:
+              0.01,
+
+            side:
+              THREE.DoubleSide,
+
+            depthWrite:
+              false,
+
+            depthTest:
+              true
+
+          });
+
+
+        /* -----------------------------------------------
+           Añadir FaceMesh
+        ------------------------------------------------ */
+
+        scene.add(
+          faceMesh
+        );
+
+
+        /* -----------------------------------------------
+           ANCHOR FACIAL
+           
+           Landmark 1 se utiliza como referencia
+           para colocar los pétalos.
+        ------------------------------------------------ */
+
+        faceAnchor =
+          mindarThree.addAnchor(1);
+
+
+        /* -----------------------------------------------
+           CREAR PETALOS
+        ------------------------------------------------ */
+
+        crearPetalos();
+
+
+        /* -----------------------------------------------
+           INICIAR CAMARA
+        ------------------------------------------------ */
+
+        cambiarEstado(
+          "Solicitando acceso a la cámara..."
+        );
+
+
+        await mindarThree.start();
+
+
+        /* -----------------------------------------------
+           AR LISTO
+        ------------------------------------------------ */
+
+        cambiarEstado(
+          "✨ Rostro detectado — abre la boca"
+        );
+
+
+        /*
+         * Ocultar estado después de unos segundos.
+         */
+
+        setTimeout(
+          () => {
+
+            estado.style.opacity =
+              "0";
+
+          },
+          4000
+        );
+
+
+        /* -----------------------------------------------
+           LOOP DE RENDER
+        ------------------------------------------------ */
+
+        renderer.setAnimationLoop(
+
+          () => {
+
+
+            /*
+             * Detectar apertura de boca
+             */
+
+            detectarBoca();
+
+
+            /*
+             * Animar pétalos
+             */
+
+            animarPetalos();
+
+
+            /*
+             * Renderizar
+             */
+
+            renderer.render(
+              scene,
+              camera
+            );
+
+          }
+
+        );
+
+      }
+
+
+      catch (error) {
+
+        mostrarError(
+          error
+        );
+
+      }
+
+    }
+
+
+    /* =====================================================
+       RESIZE
+    ====================================================== */
+
+    window.addEventListener(
+
+      "resize",
+
+      () => {
+
+        if (!renderer) {
+
+          return;
+
+        }
+
+
+        renderer.setSize(
+
+          window.innerWidth,
+
+          window.innerHeight
+
+        );
+
+
+        renderer.setPixelRatio(
+
+          Math.min(
+            window.devicePixelRatio,
+            2
+          )
+
+        );
+
+      }
+
+    );
+
+
+    /* =====================================================
+       INICIAR EXPERIENCIA
+    ====================================================== */
+
+    iniciarAR();
+
+
+  </script>
+
 </body>
+
 </html>
