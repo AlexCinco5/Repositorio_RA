@@ -106,13 +106,24 @@
            ============================================================ */
         AFRAME.registerComponent('mascara-reactiva', {
             schema: {
-                umbralAbrir:     { type: 'number',  default: 0.15 }, // ratio para ABRIR
-                umbralCerrar:    { type: 'number',  default: 0.09 }, // ratio para CERRAR (histéresis)
-                suavizado:       { type: 'number',  default: 0.35 }, // 0..1 suavizado del ratio
-                ajusteAuto:      { type: 'boolean', default: true }, // escalar según rostro
-                anchoRelativo:   { type: 'number',  default: 1.15 }, // ancho máscara / ancho rostro
-                escalaManual:    { type: 'number',  default: 1.00 }, // multiplicador extra
-                intervaloAjuste: { type: 'number',  default: 300 }   // ms entre recalibrados
+                umbralAbrir:     { type: 'number',  default: 0.15 },
+                umbralCerrar:    { type: 'number',  default: 0.09 },
+                suavizado:       { type: 'number',  default: 0.35 },
+
+                /*
+                 * AJUSTE FACIAL:
+                 * La máscara se calcula a partir del ancho real del rostro
+                 * detectado por MindAR, en vez de depender de una escala fija.
+                 * Esto hace que el tamaño sea mucho más consistente en móvil.
+                 */
+                ajusteAuto:      { type: 'boolean', default: true },
+                anchoRelativo:   { type: 'number',  default: 1.10 },
+                escalaManual:    { type: 'number',  default: 1.00 },
+                intervaloAjuste: { type: 'number',  default: 120 },
+
+                /* Suavizado independiente de posición y escala. */
+                suavizadoEscala: { type: 'number', default: 0.22 },
+                suavizadoPos:    { type: 'number', default: 0.28 }
             },
 
             init: function () {
@@ -126,80 +137,148 @@
                 this.mejillaIzq = $('#mejilla-izq');
                 this.mejillaDer = $('#mejilla-der');
 
-                /* Objetos de la máscara */
+                /* Objetos */
                 this.grupo   = $('#mascara-grupo');
                 this.modelo  = $('#mascara-modelo');
                 this.humoIzq = $('#humo-izquierdo');
                 this.humoDer = $('#humo-derecho');
                 this.sonido  = $('#alerta-gas');
 
-                /* Utilidades */
+                /* Vectores reutilizables */
                 this.vA = new THREE.Vector3();
                 this.vB = new THREE.Vector3();
+                this.vC = new THREE.Vector3();
+                this.vD = new THREE.Vector3();
+                this.vE = new THREE.Vector3();
+                this.vF = new THREE.Vector3();
+                this.vLocal = new THREE.Vector3();
+                this.vObjetivo = new THREE.Vector3();
                 this.vEscala = new THREE.Vector3();
 
-                /* Estado */
-                this.bocaAbierta  = false;
-                this.ratioSuave   = 0;
-                this.ratioListo   = false;
-                this.escala       = 1;
-                this.anchoModelo  = 0;   // ancho del modelo en su espacio local
-                this.ultimoAjuste = 0;
+                /* Estado del gesto */
+                this.bocaAbierta = false;
+                this.ratioSuave = 0;
+                this.ratioListo = false;
 
-                /* Panel de depuración (añade ?debug=1 a la URL) */
+                /* Estado de calibración */
+                this.escala = 1;
+                this.anchoModelo = 0;
+                this.ultimoAjuste = 0;
+                this.calibracionValida = false;
+                this.ultimaDistanciaRostro = 0;
+
+                /* Para evitar que la máscara aparezca saltando al iniciar. */
+                this.poseLista = false;
+
+                /* Panel de depuración: ?debug=1 */
                 this.depurar = document.getElementById('depurar');
                 this.mostrarDepurar = /[?&]debug=1/.test(window.location.search);
                 if (this.depurar && this.mostrarDepurar) {
                     this.depurar.style.display = 'block';
                 }
 
-                /* Medir el ancho real del modelo cuando cargue */
+                /*
+                 * Medimos el ancho LOCAL del GLB.
+                 * No usamos el tamaño de pantalla ni una escala fija.
+                 */
                 if (this.modelo) {
                     this.modelo.addEventListener('model-loaded', () => {
-                        this.anchoModelo = this._anchoLocal(this.modelo.getObject3D('mesh'));
+                        const mesh = this.modelo.getObject3D('mesh');
+                        this.anchoModelo = this._anchoLocal(mesh);
+
+                        /*
+                         * Si el modelo ya tiene una escala interna, la
+                         * medición local sigue siendo válida porque aquí
+                         * eliminamos la matriz mundial de la medición.
+                         */
+                        if (this.anchoModelo > 0) {
+                            this.calibracionValida = true;
+                        }
                     });
                 }
             },
 
-            update: function (oldData) {
-                // Si el ajuste automático está desactivado, aplicamos la escala manual
+            update: function () {
                 if (!this.data.ajusteAuto && this.grupo) {
                     this.escala = this.data.escalaManual;
                     this._aplicarEscala(this.escala);
                 }
             },
 
-            /* ---------- Utilidades ---------- */
+            /* ============================================================
+               UTILIDADES DE GEOMETRÍA
+               ============================================================ */
 
-            /* Distancia entre dos anclas (en unidades del mundo). -1 si no válida */
             _distancia: function (a, b) {
-                if (!a || !b || !a.object3D || !b.object3D) return -1;
+                if (!a || !b || !a.object3D) return -1;
+
                 a.object3D.getWorldPosition(this.vA);
                 b.object3D.getWorldPosition(this.vB);
+
                 const d = this.vA.distanceTo(this.vB);
                 return (isFinite(d) && d > 0.00001) ? d : -1;
             },
 
-            /* Ancho del modelo medido en su propio espacio local (sin rotación externa) */
+            _puntoMedioMundo: function (a, b, salida) {
+                if (!a || !b || !a.object3D) return false;
+
+                a.object3D.getWorldPosition(this.vA);
+                b.object3D.getWorldPosition(this.vB);
+
+                salida.copy(this.vA).add(this.vB).multiplyScalar(0.5);
+                return true;
+            },
+
+            /*
+             * Convierte una posición del mundo a la coordenada local del
+             * padre de la máscara. Así la posición se adapta al rostro y
+             * no a la resolución/orientación del teléfono.
+             */
+            _mundoALocalDelGrupo: function (worldPoint, salida) {
+                if (!this.grupo || !this.grupo.object3D.parent) return false;
+
+                this.grupo.object3D.parent.updateWorldMatrix(true, true);
+                salida.copy(worldPoint);
+                this.grupo.object3D.parent.worldToLocal(salida);
+                return true;
+            },
+
+            /*
+             * Ancho real del modelo en su propio espacio local.
+             * Se calcula una sola vez cuando el GLB termina de cargar.
+             */
             _anchoLocal: function (raiz) {
                 if (!raiz) return 0;
+
                 try {
                     raiz.updateWorldMatrix(true, true);
-                    const inversa = new THREE.Matrix4().copy(raiz.matrixWorld).invert();
-                    const caja    = new THREE.Box3();
-                    const cajaNodo= new THREE.Box3();
-                    const matriz  = new THREE.Matrix4();
 
-                    raiz.traverse(function (nodo) {
+                    const inversa = new THREE.Matrix4()
+                        .copy(raiz.matrixWorld)
+                        .invert();
+
+                    const caja = new THREE.Box3();
+                    const cajaNodo = new THREE.Box3();
+                    const matriz = new THREE.Matrix4();
+
+                    raiz.traverse((nodo) => {
                         if (!nodo.isMesh || !nodo.geometry) return;
-                        if (!nodo.geometry.boundingBox) nodo.geometry.computeBoundingBox();
+
+                        if (!nodo.geometry.boundingBox) {
+                            nodo.geometry.computeBoundingBox();
+                        }
+
                         if (!nodo.geometry.boundingBox) return;
+
                         matriz.copy(inversa).multiply(nodo.matrixWorld);
-                        cajaNodo.copy(nodo.geometry.boundingBox).applyMatrix4(matriz);
+                        cajaNodo.copy(nodo.geometry.boundingBox)
+                            .applyMatrix4(matriz);
+
                         caja.union(cajaNodo);
                     });
 
                     if (caja.isEmpty()) return 0;
+
                     return Math.abs(caja.max.x - caja.min.x);
                 } catch (e) {
                     return 0;
@@ -208,46 +287,85 @@
 
             _aplicarEscala: function (s) {
                 if (!this.grupo) return;
-                this.grupo.setAttribute('scale', { x: s, y: s, z: s });
+
+                const segura = Math.max(0.05, Math.min(8, s));
+
+                this.grupo.object3D.scale.set(
+                    segura,
+                    segura,
+                    segura
+                );
+
+                this.escala = segura;
             },
 
-            /* ---------- Acciones ---------- */
+            /* ============================================================
+               POSICIÓN FACIAL
+               ============================================================ */
 
-            abrirBoca: function () {
-                if (this.bocaAbierta) return;
-                this.bocaAbierta = true;
+            _ajustarPosicion: function () {
+                if (!this.grupo || !this.grupo.object3D.parent) return;
 
-                if (this.humoIzq) this.humoIzq.setAttribute('visible', true);
-                if (this.humoDer) this.humoDer.setAttribute('visible', true);
+                /*
+                 * Centro de ojos.
+                 * Centro de boca.
+                 *
+                 * La posición final se coloca entre ambos, ligeramente
+                 * más cerca de la boca, porque la máscara de gas cubre
+                 * principalmente nariz y boca.
+                 */
+                const ojosOk = this._puntoMedioMundo(
+                    this.ojoIzq,
+                    this.ojoDer,
+                    this.vC
+                );
 
-                const sonido = this.sonido && this.sonido.components && this.sonido.components.sound;
-                if (sonido) {
-                    try { sonido.playSound(); }
-                    catch (e) { try { sonido.play && sonido.play(); } catch (e2) {} }
+                const bocaOk = this._puntoMedioMundo(
+                    this.labioSup,
+                    this.labioInf,
+                    this.vD
+                );
+
+                if (!ojosOk || !bocaOk) return;
+
+                this.vObjetivo
+                    .copy(this.vC)
+                    .multiplyScalar(0.38)
+                    .add(
+                        this.vD.clone().multiplyScalar(0.62)
+                    );
+
+                /*
+                 * El GLB tiene un origen propio que no necesariamente
+                 * coincide con el centro geométrico de la máscara.
+                 * Por eso mantenemos una pequeña corrección vertical y
+                 * de profundidad, pero NO una posición fija completa.
+                 */
+                this.vObjetivo.y += -0.035;
+                this.vObjetivo.z += 0.035;
+
+                if (!this._mundoALocalDelGrupo(this.vObjetivo, this.vLocal)) {
+                    return;
                 }
 
-                if (navigator.vibrate) {
-                    try { navigator.vibrate(80); } catch (e) {}
+                const actual = this.grupo.object3D.position;
+
+                if (!this.poseLista) {
+                    actual.copy(this.vLocal);
+                    this.poseLista = true;
+                } else {
+                    const k = Math.max(
+                        0.08,
+                        Math.min(0.55, this.data.suavizadoPos)
+                    );
+
+                    actual.lerp(this.vLocal, k);
                 }
             },
 
-            cerrarBoca: function () {
-                if (!this.bocaAbierta) return;
-                this.bocaAbierta = false;
-
-                if (this.humoIzq) this.humoIzq.setAttribute('visible', false);
-                if (this.humoDer) this.humoDer.setAttribute('visible', false);
-
-                const sonido = this.sonido && this.sonido.components && this.sonido.components.sound;
-                if (sonido) {
-                    try {
-                        if (typeof sonido.stopSound === 'function') sonido.stopSound();
-                        else if (typeof sonido.stop === 'function') sonido.stop();
-                    } catch (e) {}
-                }
-            },
-
-            /* ---------- Ajuste de escala según el rostro ---------- */
+            /* ============================================================
+               ESCALA FACIAL
+               ============================================================ */
 
             _ajustarEscala: function () {
                 if (!this.grupo || !this.modelo) return;
@@ -256,40 +374,192 @@
                     const obj = this.modelo.getObject3D('mesh');
                     if (obj) this.anchoModelo = this._anchoLocal(obj);
                 }
+
                 if (!this.anchoModelo) return;
 
-                const anchoRostro = this._distancia(this.mejillaIzq, this.mejillaDer);
+                const anchoRostro = this._distancia(
+                    this.mejillaIzq,
+                    this.mejillaDer
+                );
+
                 if (anchoRostro <= 0) return;
 
-                /* Escala del mundo que está afectando al modelo (incluye la del grupo) */
-                if (this.grupo.object3D.parent) {
-                    this.grupo.object3D.parent.updateWorldMatrix(true, false);
+                /*
+                 * El objetivo se expresa directamente en unidades faciales:
+                 *
+                 * ancho máscara = ancho rostro × anchoRelativo
+                 *
+                 * Como el modelo está dentro de mascara-grupo, basta
+                 * dividir por su ancho geométrico local.
+                 */
+                let objetivo =
+                    (anchoRostro *
+                     this.data.anchoRelativo *
+                     this.data.escalaManual) /
+                    this.anchoModelo;
+
+                /*
+                 * Evitamos valores extremos causados por una detección
+                 * momentáneamente errónea al iniciar la cámara.
+                 */
+                objetivo = Math.max(
+                    0.08,
+                    Math.min(5.0, objetivo)
+                );
+
+                if (!this.poseLista) {
+                    this.escala = objetivo;
+                } else {
+                    const k = Math.max(
+                        0.08,
+                        Math.min(0.45, this.data.suavizadoEscala)
+                    );
+
+                    this.escala +=
+                        (objetivo - this.escala) * k;
                 }
-                this.modelo.object3D.updateWorldMatrix(true, false);
-                this.vEscala.setFromMatrixScale(this.modelo.object3D.matrixWorld);
-                const escalaMundo = this.vEscala.x;
-                if (!isFinite(escalaMundo) || escalaMundo <= 0) return;
 
-                /* Escala base = mundo / escala actual del grupo */
-                const escalaBase = escalaMundo / (this.escala || 1);
-                const anchoBase  = this.anchoModelo * escalaBase;
-                if (!isFinite(anchoBase) || anchoBase <= 0.00001) return;
-
-                /* Objetivo: la máscara debe medir "anchoRelativo" veces el ancho del rostro */
-                const objetivo = (anchoRostro * this.data.anchoRelativo * this.data.escalaManual) / anchoBase;
-                const limitado = Math.max(0.05, Math.min(20, objetivo));
-
-                /* Convergencia suave para evitar saltos */
-                this.escala += (limitado - this.escala) * 0.25;
                 this._aplicarEscala(this.escala);
+
+                this.ultimaDistanciaRostro = anchoRostro;
+
+                /*
+                 * El humo NO debe depender accidentalmente de la escala
+                 * interna del GLB. Se ajusta por separado al ancho facial.
+                 */
+                this._ajustarHumo(anchoRostro);
             },
 
-            /* ---------- Bucle principal ---------- */
+            /* ============================================================
+               HUMO ADAPTATIVO
+               ============================================================ */
+
+            _ajustarHumo: function (anchoRostro) {
+                if (!this.humoIzq || !this.humoDer) return;
+                if (!isFinite(anchoRostro) || anchoRostro <= 0) return;
+
+                /*
+                 * El humo se mantiene proporcional al rostro.
+                 * Usamos límites para evitar que en móviles con una
+                 * detección inicial rara aparezca gigantesco o diminuto.
+                 */
+                const tam = Math.max(
+                    0.16,
+                    Math.min(0.48, anchoRostro * 0.52)
+                );
+
+                const sep = Math.max(
+                    0.34,
+                    Math.min(0.82, anchoRostro * 0.92)
+                );
+
+                const y = -Math.max(
+                    0.20,
+                    Math.min(0.48, anchoRostro * 0.55)
+                );
+
+                const z = Math.max(
+                    0.34,
+                    Math.min(0.72, anchoRostro * 0.78)
+                );
+
+                this.humoIzq.object3D.position.lerp(
+                    new THREE.Vector3(-sep, y, z),
+                    0.22
+                );
+
+                this.humoDer.object3D.position.lerp(
+                    new THREE.Vector3(sep, y, z),
+                    0.22
+                );
+
+                this.humoIzq.object3D.scale.set(tam, tam, tam);
+                this.humoDer.object3D.scale.set(tam, tam, tam);
+            },
+
+            /* ============================================================
+               GESTO
+               ============================================================ */
+
+            abrirBoca: function () {
+                if (this.bocaAbierta) return;
+
+                this.bocaAbierta = true;
+
+                if (this.humoIzq) {
+                    this.humoIzq.setAttribute('visible', true);
+                }
+
+                if (this.humoDer) {
+                    this.humoDer.setAttribute('visible', true);
+                }
+
+                const sonido =
+                    this.sonido &&
+                    this.sonido.components &&
+                    this.sonido.components.sound;
+
+                if (sonido) {
+                    try {
+                        sonido.playSound();
+                    } catch (e) {
+                        try {
+                            if (sonido.play) sonido.play();
+                        } catch (e2) {}
+                    }
+                }
+
+                if (navigator.vibrate) {
+                    try {
+                        navigator.vibrate(80);
+                    } catch (e) {}
+                }
+            },
+
+            cerrarBoca: function () {
+                if (!this.bocaAbierta) return;
+
+                this.bocaAbierta = false;
+
+                if (this.humoIzq) {
+                    this.humoIzq.setAttribute('visible', false);
+                }
+
+                if (this.humoDer) {
+                    this.humoDer.setAttribute('visible', false);
+                }
+
+                const sonido =
+                    this.sonido &&
+                    this.sonido.components &&
+                    this.sonido.components.sound;
+
+                if (sonido) {
+                    try {
+                        if (typeof sonido.stopSound === 'function') {
+                            sonido.stopSound();
+                        } else if (typeof sonido.stop === 'function') {
+                            sonido.stop();
+                        }
+                    } catch (e) {}
+                }
+            },
+
+            /* ============================================================
+               BUCLE
+               ============================================================ */
 
             tick: function (time) {
-                /* 1) DETECCIÓN DE BOCA ------------------------------------ */
-                const apertura = this._distancia(this.labioSup, this.labioInf);
-                const refOjos  = this._distancia(this.ojoIzq, this.ojoDer);
+                /* ----- Detección de boca ----- */
+                const apertura = this._distancia(
+                    this.labioSup,
+                    this.labioInf
+                );
+
+                const refOjos = this._distancia(
+                    this.ojoIzq,
+                    this.ojoDer
+                );
 
                 if (apertura > 0 && refOjos > 0) {
                     const ratio = apertura / refOjos;
@@ -298,28 +568,54 @@
                         this.ratioSuave = ratio;
                         this.ratioListo = true;
                     } else {
-                        this.ratioSuave += (ratio - this.ratioSuave) * this.data.suavizado;
+                        this.ratioSuave +=
+                            (ratio - this.ratioSuave) *
+                            this.data.suavizado;
                     }
 
-                    if (!this.bocaAbierta && this.ratioSuave >= this.data.umbralAbrir) {
+                    if (
+                        !this.bocaAbierta &&
+                        this.ratioSuave >= this.data.umbralAbrir
+                    ) {
                         this.abrirBoca();
-                    } else if (this.bocaAbierta && this.ratioSuave <= this.data.umbralCerrar) {
+                    } else if (
+                        this.bocaAbierta &&
+                        this.ratioSuave <= this.data.umbralCerrar
+                    ) {
                         this.cerrarBoca();
-                    }
-
-                    if (this.depurar && this.mostrarDepurar) {
-                        this.depurar.textContent =
-                            'ratio boca : ' + this.ratioSuave.toFixed(3) + '\n' +
-                            'abrir/cerrar: ' + this.data.umbralAbrir + ' / ' + this.data.umbralCerrar + '\n' +
-                            'estado      : ' + (this.bocaAbierta ? 'ABIERTA' : 'cerrada') + '\n' +
-                            'escala      : ' + this.escala.toFixed(3);
                     }
                 }
 
-                /* 2) AJUSTE DE ESCALA -------------------------------------- */
-                if (this.data.ajusteAuto && (time - this.ultimoAjuste) > this.data.intervaloAjuste) {
+                /* ----- Ajuste facial ----- */
+                if (
+                    this.data.ajusteAuto &&
+                    (time - this.ultimoAjuste) >
+                    this.data.intervaloAjuste
+                ) {
                     this.ultimoAjuste = time;
+
+                    /*
+                     * Primero posición y después escala.
+                     * Ambas se basan en landmarks, no en píxeles.
+                     */
+                    this._ajustarPosicion();
                     this._ajustarEscala();
+                }
+
+                if (this.depurar && this.mostrarDepurar) {
+                    this.depurar.textContent =
+                        'ratio boca : ' +
+                        this.ratioSuave.toFixed(3) + '\n' +
+                        'abrir/cerrar: ' +
+                        this.data.umbralAbrir + ' / ' +
+                        this.data.umbralCerrar + '\n' +
+                        'estado      : ' +
+                        (this.bocaAbierta ?
+                            'ABIERTA' : 'cerrada') + '\n' +
+                        'escala      : ' +
+                        this.escala.toFixed(3) + '\n' +
+                        'rostro      : ' +
+                        this.ultimaDistanciaRostro.toFixed(3);
                 }
             }
         });
@@ -347,7 +643,7 @@
         vr-mode-ui="enabled: false"
         device-orientation-permission-ui="enabled: false"
         loading-screen="enabled: false"
-        mascara-reactiva="umbralAbrir: 0.15; umbralCerrar: 0.09; anchoRelativo: 1.15; ajusteAuto: true">
+        mascara-reactiva="umbralAbrir: 0.15; umbralCerrar: 0.09; anchoRelativo: 1.10; ajusteAuto: true; suavizadoEscala: 0.22; suavizadoPos: 0.28">
 
         <a-assets timeout="15000">
             <a-asset-item id="mascara-gas" src="./mascara_gas.glb"></a-asset-item>
@@ -378,7 +674,7 @@
                       scale="0.075 0.075 0.075"></a-entity>
 
             <!-- Grupo que se reescala automáticamente según el tamaño del rostro -->
-            <a-entity id="mascara-grupo" scale="1 1 1">
+            <a-entity id="mascara-grupo" position="0 0 0" scale="1 1 1">
 
                 <a-entity id="mascara-modelo"
                           gltf-model="#mascara-gas"
@@ -388,12 +684,12 @@
                           animation-mixer></a-entity>
 
                 <a-image id="humo-izquierdo" src="#textura-humo"
-                         position="-0.7 -0.45 0.7" rotation="0 0 20"
-                         scale="0.4 0.4 0.4" visible="false"></a-image>
+                         position="-0.5 -0.3 0.5" rotation="0 0 20"
+                         scale="0.25 0.25 0.25" visible="false"></a-image>
 
                 <a-image id="humo-derecho" src="#textura-humo"
-                         position="0.7 -0.45 0.7" rotation="0 0 -20"
-                         scale="0.4 0.4 0.4" visible="false"></a-image>
+                         position="0.5 -0.3 0.5" rotation="0 0 -20"
+                         scale="0.25 0.25 0.25" visible="false"></a-image>
 
             </a-entity>
 
